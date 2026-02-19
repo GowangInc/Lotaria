@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lotaria</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: transparent;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    user-select: none;
+  }
+
+  #app {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    position: relative;
+  }
+
+  /* ---- Speech Bubble ---- */
+  #bubble {
+    position: absolute;
+    bottom: 160px;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 340px;
+    min-width: 120px;
+    background: #1a1a2e;
+    color: #e0e0e0;
+    border: 2px solid #e94560;
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 13px;
+    line-height: 1.45;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+    z-index: 10;
+    box-shadow: 0 4px 24px rgba(233,69,96,0.25);
+  }
+  #bubble.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  #bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 10px solid #e94560;
+  }
+
+  /* ---- Character Container ---- */
+  #character {
+    width: 120px;
+    height: 140px;
+    cursor: grab;
+    position: relative;
+    z-index: 5;
+    /* pywebview drag region */
+  }
+  #character:active { cursor: grabbing; }
+
+  /* Idle bobbing */
+  @keyframes bob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+  #character.idle { animation: bob 2.5s ease-in-out infinite; }
+
+  /* Roasting shake */
+  @keyframes shake {
+    0%, 100% { transform: translateX(0) rotate(0); }
+    20% { transform: translateX(-4px) rotate(-2deg); }
+    40% { transform: translateX(4px) rotate(2deg); }
+    60% { transform: translateX(-3px) rotate(-1deg); }
+    80% { transform: translateX(3px) rotate(1deg); }
+  }
+  #character.roasting { animation: shake 0.4s ease-in-out infinite; }
+
+  /* Thinking pulse */
+  @keyframes think-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.06); }
+  }
+  #character.thinking { animation: think-pulse 0.8s ease-in-out infinite; }
+
+  /* Eye blink (handled via JS toggling class) */
+  .eye-open  { display: block; }
+  .eye-shut  { display: none; }
+  #character.blink .eye-open  { display: none; }
+  #character.blink .eye-shut  { display: block; }
+
+  /* Mouth states */
+  .mouth-closed { display: block; }
+  .mouth-open   { display: none; }
+  #character.roasting .mouth-closed { display: none; }
+  #character.roasting .mouth-open   { display: block; }
+  #character.thinking .mouth-closed { display: none; }
+  #character.thinking .mouth-open   { display: block; }
+
+  /* ---- Context Menu ---- */
+  #ctx-menu {
+    display: none;
+    position: fixed;
+    background: #16213e;
+    border: 1px solid #e94560;
+    border-radius: 8px;
+    padding: 6px 0;
+    min-width: 200px;
+    z-index: 100;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    font-size: 13px;
+  }
+  #ctx-menu.open { display: block; }
+
+  .ctx-item {
+    padding: 8px 16px;
+    color: #e0e0e0;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .ctx-item:hover { background: #1a1a2e; }
+  .ctx-item.danger { color: #e94560; }
+  .ctx-item.danger:hover { background: #2a0a14; }
+
+  .ctx-sep {
+    height: 1px;
+    background: #2a2a4a;
+    margin: 4px 0;
+  }
+
+  .ctx-label { flex: 1; }
+  .ctx-value {
+    color: #888;
+    font-size: 11px;
+    margin-left: 12px;
+  }
+  .ctx-check {
+    color: #e94560;
+    font-weight: bold;
+    margin-left: 8px;
+    font-size: 14px;
+  }
+
+  /* Sub-menu for intervals etc */
+  .ctx-sub {
+    position: relative;
+  }
+  .ctx-sub > .ctx-submenu {
+    display: none;
+    position: absolute;
+    left: 100%;
+    top: -6px;
+    background: #16213e;
+    border: 1px solid #e94560;
+    border-radius: 8px;
+    padding: 6px 0;
+    min-width: 140px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+  .ctx-sub:hover > .ctx-submenu { display: block; }
+
+  /* ---- Status indicator ---- */
+  #status {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #555;
+    z-index: 20;
+  }
+  #status.active {
+    background: #00ff88;
+    box-shadow: 0 0 6px #00ff88;
+    animation: pulse-dot 2s infinite;
+  }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- Speech bubble -->
+  <div id="bubble"></div>
+
+  <!-- Character (drag region) -->
+  <div id="character" class="idle pywebview-drag-region">
+    <svg viewBox="0 0 120 140" width="120" height="140" xmlns="http://www.w3.org/2000/svg">
+      <!-- Body -->
+      <rect x="20" y="50" width="80" height="70" rx="16" fill="#e94560"/>
+      <!-- Head -->
+      <rect x="25" y="10" width="70" height="55" rx="14" fill="#1a1a2e" stroke="#e94560" stroke-width="2"/>
+      <!-- Eyes open -->
+      <g class="eye-open">
+        <rect x="40" y="30" width="12" height="14" rx="3" fill="#e94560"/>
+        <rect x="68" y="30" width="12" height="14" rx="3" fill="#e94560"/>
+        <!-- Pupils -->
+        <rect x="44" y="36" width="5" height="6" rx="1" fill="#fff"/>
+        <rect x="72" y="36" width="5" height="6" rx="1" fill="#fff"/>
+      </g>
+      <!-- Eyes shut (blink) -->
+      <g class="eye-shut">
+        <line x1="40" y1="37" x2="52" y2="37" stroke="#e94560" stroke-width="3" stroke-linecap="round"/>
+        <line x1="68" y1="37" x2="80" y2="37" stroke="#e94560" stroke-width="3" stroke-linecap="round"/>
+      </g>
+      <!-- Mouth closed (smirk) -->
+      <path class="mouth-closed" d="M48 52 Q60 58 72 52" stroke="#e94560" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <!-- Mouth open (roasting) -->
+      <ellipse class="mouth-open" cx="60" cy="52" rx="10" ry="6" fill="#e94560"/>
+      <!-- Arms -->
+      <rect x="8" y="60" width="14" height="40" rx="7" fill="#e94560"/>
+      <rect x="98" y="60" width="14" height="40" rx="7" fill="#e94560"/>
+      <!-- Feet -->
+      <rect x="30" y="115" width="22" height="14" rx="7" fill="#e94560"/>
+      <rect x="68" y="115" width="22" height="14" rx="7" fill="#e94560"/>
+      <!-- Devil horns -->
+      <polygon points="30,14 38,2 40,18" fill="#e94560"/>
+      <polygon points="90,14 82,2 80,18" fill="#e94560"/>
+    </svg>
+  </div>
+
+  <!-- Status dot -->
+  <div id="status"></div>
+</div>
+
+<!-- Context Menu -->
+<div id="ctx-menu">
+  <div class="ctx-item" data-action="roast">Roast Me Now</div>
+  <div class="ctx-item" data-action="toggle-monitor">
+    <span class="ctx-label" id="ctx-monitor-label">Start Watching</span>
+  </div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-sub">
+    <div class="ctx-item">
+      <span class="ctx-label">Vision Model</span>
+      <span class="ctx-value" id="ctx-vision-val">local</span>
+    </div>
+    <div class="ctx-submenu">
+      <div class="ctx-item" data-action="set-vision" data-value="local">
+        <span class="ctx-label">Local (Qwen3-VL)</span>
+        <span class="ctx-check" id="chk-vision-local"></span>
+      </div>
+      <div class="ctx-item" data-action="set-vision" data-value="api">
+        <span class="ctx-label">API (Gemini)</span>
+        <span class="ctx-check" id="chk-vision-api"></span>
+      </div>
+    </div>
+  </div>
+  <div class="ctx-sub">
+    <div class="ctx-item">
+      <span class="ctx-label">TTS Model</span>
+      <span class="ctx-value" id="ctx-tts-val">local</span>
+    </div>
+    <div class="ctx-submenu">
+      <div class="ctx-item" data-action="set-tts" data-value="local">
+        <span class="ctx-label">Local (Piper)</span>
+        <span class="ctx-check" id="chk-tts-local"></span>
+      </div>
+      <div class="ctx-item" data-action="set-tts" data-value="api">
+        <span class="ctx-label">API (Gemini)</span>
+        <span class="ctx-check" id="chk-tts-api"></span>
+      </div>
+    </div>
+  </div>
+  <div class="ctx-sub">
+    <div class="ctx-item">
+      <span class="ctx-label">Interval</span>
+      <span class="ctx-value" id="ctx-interval-val">5m</span>
+    </div>
+    <div class="ctx-submenu">
+      <div class="ctx-item" data-action="set-interval" data-value="120">2 min</div>
+      <div class="ctx-item" data-action="set-interval" data-value="300">5 min</div>
+      <div class="ctx-item" data-action="set-interval" data-value="600">10 min</div>
+    </div>
+  </div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" data-action="toggle-bubble">
+    <span class="ctx-label">Speech Bubble</span>
+    <span class="ctx-check" id="chk-bubble"></span>
+  </div>
+  <div class="ctx-item" data-action="toggle-audio">
+    <span class="ctx-label">Audio</span>
+    <span class="ctx-check" id="chk-audio"></span>
+  </div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item danger" data-action="quit">Quit</div>
+</div>
+
+<script>
+// ========== State ==========
+let cfg = {
+  is_active: false,
+  interval: 300,
+  vision_model_type: 'local',
+  tts_model_type: 'local',
+  speech_bubble_enabled: true,
+  audio_enabled: true,
+};
+let bubbleTimeout = null;
+let currentAudio = null;
+let isRoasting = false;
+
+// ========== DOM refs ==========
+const character = document.getElementById('character');
+const bubble = document.getElementById('bubble');
+const ctxMenu = document.getElementById('ctx-menu');
+const statusDot = document.getElementById('status');
+
+// ========== Eye blinking ==========
+function blink() {
+  character.classList.add('blink');
+  setTimeout(() => character.classList.remove('blink'), 150);
+}
+setInterval(() => {
+  if (Math.random() < 0.3) blink();
+}, 2500);
+
+// ========== Config sync ==========
+function onConfigLoaded(c) {
+  cfg = { ...cfg, ...c };
+  updateMenuState();
+}
+
+function updateMenuState() {
+  // Monitor label
+  document.getElementById('ctx-monitor-label').textContent =
+    cfg.is_active ? 'Stop Watching' : 'Start Watching';
+
+  // Status dot
+  statusDot.className = cfg.is_active ? 'active' : '';
+
+  // Vision check
+  document.getElementById('chk-vision-local').textContent = cfg.vision_model_type === 'local' ? '\u2713' : '';
+  document.getElementById('chk-vision-api').textContent = cfg.vision_model_type === 'api' ? '\u2713' : '';
+  document.getElementById('ctx-vision-val').textContent = cfg.vision_model_type;
+
+  // TTS check
+  document.getElementById('chk-tts-local').textContent = cfg.tts_model_type === 'local' ? '\u2713' : '';
+  document.getElementById('chk-tts-api').textContent = cfg.tts_model_type === 'api' ? '\u2713' : '';
+  document.getElementById('ctx-tts-val').textContent = cfg.tts_model_type;
+
+  // Interval
+  const m = Math.round(cfg.interval / 60);
+  document.getElementById('ctx-interval-val').textContent = m + 'm';
+
+  // Toggles
+  document.getElementById('chk-bubble').textContent = cfg.speech_bubble_enabled ? '\u2713' : '';
+  document.getElementById('chk-audio').textContent = cfg.audio_enabled ? '\u2713' : '';
+}
+
+// ========== Speech Bubble ==========
+function showBubble(text) {
+  if (!cfg.speech_bubble_enabled) return;
+
+  // Clear previous
+  clearTimeout(bubbleTimeout);
+  bubble.textContent = '';
+  bubble.classList.add('visible');
+
+  // Typewriter effect
+  let i = 0;
+  const speed = 25;
+  function typeChar() {
+    if (i < text.length) {
+      bubble.textContent += text[i];
+      i++;
+      setTimeout(typeChar, speed);
+    }
+  }
+  typeChar();
+
+  // Auto-dismiss after 10s (or when audio ends)
+  bubbleTimeout = setTimeout(hideBubble, Math.max(10000, text.length * speed + 2000));
+}
+
+function hideBubble() {
+  bubble.classList.remove('visible');
+  clearTimeout(bubbleTimeout);
+}
+
+// ========== Audio ==========
+function playAudio(b64) {
+  if (!cfg.audio_enabled || !b64) return;
+  stopAudio();
+  currentAudio = new Audio('data:audio/wav;base64,' + b64);
+  currentAudio.onended = () => {
+    currentAudio = null;
+    // Dismiss bubble shortly after audio ends
+    setTimeout(hideBubble, 1500);
+  };
+  currentAudio.play().catch(e => console.warn('Audio play failed:', e));
+}
+
+function stopAudio() {
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio = null;
+  }
+}
+
+// ========== Roast delivery (called from Python) ==========
+function deliverRoast(result) {
+  isRoasting = true;
+  character.className = 'roasting pywebview-drag-region';
+
+  showBubble(result.text);
+  playAudio(result.audio_b64);
+
+  // Return to idle after a delay
+  const duration = result.audio_b64 ? 8000 : 4000;
+  setTimeout(() => {
+    if (isRoasting) {
+      character.className = 'idle pywebview-drag-region';
+      isRoasting = false;
+    }
+  }, duration);
+}
+
+function onThinkingStart() {
+  character.className = 'thinking pywebview-drag-region';
+  showBubble('...');
+}
+
+// ========== Context Menu ==========
+document.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  updateMenuState();
+  // Position menu
+  let x = e.clientX;
+  let y = e.clientY;
+  ctxMenu.classList.add('open');
+  // Adjust if off-screen
+  const rect = ctxMenu.getBoundingClientRect();
+  if (x + rect.width > window.innerWidth) x = window.innerWidth - rect.width - 4;
+  if (y + rect.height > window.innerHeight) y = window.innerHeight - rect.height - 4;
+  ctxMenu.style.left = x + 'px';
+  ctxMenu.style.top = y + 'px';
+});
+
+document.addEventListener('click', () => {
+  ctxMenu.classList.remove('open');
+});
+
+// Menu actions
+ctxMenu.addEventListener('click', async (e) => {
+  const item = e.target.closest('[data-action]');
+  if (!item) return;
+  ctxMenu.classList.remove('open');
+
+  const action = item.dataset.action;
+  const value = item.dataset.value;
+  const api = window.pywebview ? window.pywebview.api : null;
+
+  switch (action) {
+    case 'roast':
+      if (!api) break;
+      // roast_now is called in a thread by pywebview, returns a promise
+      const result = await api.roast_now();
+      if (result) deliverRoast(result);
+      break;
+
+    case 'toggle-monitor':
+      if (!api) break;
+      const active = await api.toggle_monitoring();
+      cfg.is_active = active;
+      updateMenuState();
+      break;
+
+    case 'set-vision':
+      if (!api) break;
+      await api.set_config('vision_model_type', value);
+      cfg.vision_model_type = value;
+      updateMenuState();
+      break;
+
+    case 'set-tts':
+      if (!api) break;
+      await api.set_config('tts_model_type', value);
+      cfg.tts_model_type = value;
+      updateMenuState();
+      break;
+
+    case 'set-interval':
+      if (!api) break;
+      await api.set_config('interval', parseInt(value));
+      cfg.interval = parseInt(value);
+      updateMenuState();
+      break;
+
+    case 'toggle-bubble':
+      cfg.speech_bubble_enabled = !cfg.speech_bubble_enabled;
+      if (api) await api.set_config('speech_bubble_enabled', cfg.speech_bubble_enabled);
+      if (!cfg.speech_bubble_enabled) hideBubble();
+      updateMenuState();
+      break;
+
+    case 'toggle-audio':
+      cfg.audio_enabled = !cfg.audio_enabled;
+      if (api) await api.set_config('audio_enabled', cfg.audio_enabled);
+      if (!cfg.audio_enabled) stopAudio();
+      updateMenuState();
+      break;
+
+    case 'quit':
+      if (api) await api.quit();
+      break;
+  }
+});
+</script>
+</body>
+</html>

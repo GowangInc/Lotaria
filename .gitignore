@@ -1,0 +1,17 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Temp files (captures, audio)
+.temp/
+
+# Models cache
+.models/
+
+# Environment
+.env
+
+# Agent
+.claude/
+.agent/

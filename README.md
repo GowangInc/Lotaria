@@ -7,18 +7,18 @@ Lotaria sits on your desktop as a transparent, always-on-top pixel art character
 ## Features
 
 - **Screen-aware roasts** — captures your screen and generates context-specific commentary
-- **Vision AI** — local Qwen3-VL-2B-Instruct (GPU) or Gemini 2.0 Flash (API)
-- **Text-to-speech** — local Piper TTS or Gemini TTS (API)
+- **Multi-provider AI** — supports Gemini, OpenAI, Anthropic, and OpenRouter via LiteLLM
+- **Text-to-speech** — Gemini TTS or OpenAI TTS reads roasts aloud
+- **In-app settings** — enter API keys and configure providers directly in the app
 - **Roast history** — remembers last 20 roasts for callbacks and continuity
-- **Desktop pet UI** — draggable pixel art character with idle animations, speech bubbles, and a right-click context menu
-- **Configurable** — adjust scan interval, toggle vision/TTS providers, enable/disable speech bubbles and audio
+- **Desktop pet UI** — draggable pixel art character with idle animations, eye tracking, speech bubbles, and a right-click context menu
+- **Configurable** — adjust scan interval, toggle speech bubbles and audio, switch providers and models
 
 ## Requirements
 
 - Python 3.10+
 - Windows (pywebview with Qt backend)
-- NVIDIA GPU with CUDA (for local vision model)
-- Google API key (only if using API-based vision/TTS)
+- At least one API key (Gemini, OpenAI, Anthropic, or OpenRouter)
 
 ## Setup
 
@@ -28,12 +28,8 @@ python -m venv .venv
 
 pip install -r requirements.txt
 
-# PyTorch MUST be the CUDA build, not CPU-only:
-pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126
-
-# Only needed if using Gemini API models:
 cp .env.example .env
-# Edit .env and add your Google API key
+# Edit .env and add your API key(s), or enter them in-app via Settings
 ```
 
 ## Usage
@@ -43,8 +39,33 @@ python app.py
 ```
 
 - **Right-click** the character for the context menu (roast now, toggle monitoring, settings, quit)
+- **Settings** — manage API keys, choose vision/TTS providers and models
 - **Drag** the character to reposition it on screen
 - Monitoring auto-starts and roasts you every 5 minutes by default
+
+## Supported Providers
+
+| Provider | Vision | TTS | API Key Env Var |
+|----------|--------|-----|-----------------|
+| Google Gemini | gemini-2.0-flash, 2.5-flash, 2.5-pro | gemini-2.5-flash-preview-tts | `GEMINI_API_KEY` |
+| OpenAI | gpt-4o, gpt-4o-mini | tts-1, tts-1-hd | `OPENAI_API_KEY` |
+| Anthropic | claude-sonnet-4 | - | `ANTHROPIC_API_KEY` |
+| OpenRouter | Various (Gemini, Claude, GPT-4o) | - | `OPENROUTER_API_KEY` |
+| Local | Qwen3-VL-2B | Piper | - |
+
+API keys can be set as environment variables, in `.env`, or entered directly in the Settings modal.
+
+## Optional: Local Models
+
+By default Lotaria uses API providers. If you have an NVIDIA GPU, you can switch to local models via Settings. Local models require additional dependencies:
+
+```bash
+# CUDA PyTorch for local vision (Qwen3-VL-2B-Instruct, ~4GB VRAM)
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126
+
+# Local TTS (Piper)
+pip install piper-tts
+```
 
 ## Project Structure
 
@@ -53,23 +74,26 @@ app.py              # Entry point: pywebview window setup and auto-start
 bridge.py           # JS API bridge (pywebview <-> Python)
 monitor.py          # Background monitoring thread
 services/
-├── state.py        # Config, history, roast prompt, temp file cleanup
+├── state.py        # Config, history, providers, roast prompt, temp file cleanup
 ├── capture.py      # Screen capture (mss)
-├── vision.py       # Vision analysis (local Qwen3-VL / Gemini API)
-└── tts.py          # Text-to-speech (local Piper / Gemini API)
+├── vision.py       # Vision analysis (LiteLLM multi-provider / local Qwen3-VL)
+└── tts.py          # Text-to-speech (Gemini API / LiteLLM / local Piper)
 ui/
-└── index.html      # Single-file UI: character, speech bubble, context menu
+└── index.html      # Single-file UI: character, speech bubble, settings modal, context menu
 ```
 
 ## Configuration
 
-All settings are adjustable via the right-click context menu:
+Settings are adjustable via the right-click context menu and the Settings modal:
 
 | Setting | Default | Description |
 |---------|---------|-------------|
+| Vision provider | Gemini | AI provider for screen analysis |
+| Vision model | gemini-2.0-flash | Specific model for vision |
+| TTS provider | Gemini | AI provider for text-to-speech |
+| TTS model | gemini-2.5-flash-preview-tts | Specific model for TTS |
+| TTS voice | Kore | Voice for TTS output |
 | Scan interval | 300s | Time between automatic roasts |
-| Vision model | Local | Local (Qwen3-VL) or API (Gemini) |
-| TTS model | Local | Local (Piper) or API (Gemini) |
 | Speech bubble | On | Show/hide the speech bubble |
 | Audio | On | Enable/disable TTS playback |
 
@@ -77,4 +101,4 @@ All settings are adjustable via the right-click context menu:
 
 - Temporary files (screenshots, audio) are stored in `.temp/` and auto-cleaned after 24 hours
 - On Python 3.14+, the app uses the Qt backend since pythonnet/EdgeChromium is unavailable
-- The local vision model requires ~4GB VRAM
+- API keys entered in-app are persisted to `.temp/config.json` and override environment variables

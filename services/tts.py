@@ -1,5 +1,3 @@
-import os
-import base64
 import time
 import wave
 import subprocess
@@ -8,7 +6,7 @@ from pathlib import Path
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from .state import config, TEMP_DIR, LOCAL_TTS_MODEL, API_TTS_MODEL
+from .state import config, TEMP_DIR, LOCAL_TTS_MODEL
 
 
 class BaseTTSService(ABC):
@@ -16,7 +14,7 @@ class BaseTTSService(ABC):
 
     @abstractmethod
     def synthesize(self, text: str) -> tuple[bytes, str]:
-        """Returns (wav_bytes, mime_type)."""
+        """Returns (audio_bytes, mime_type)."""
         pass
 
 
@@ -70,14 +68,57 @@ class LocalTTSService(BaseTTSService):
             )
 
 
-class APITTSService(BaseTTSService):
-    def __init__(self):
+class LiteLLMTTSService(BaseTTSService):
+    def __init__(self, model: str, voice: str, api_key: str = None):
+        self.model = model
+        self.voice = voice
+        self.api_key = api_key
+
+    def synthesize(self, text: str) -> tuple[bytes, str]:
+        import litellm
+        kwargs = {
+            "model": self.model,
+            "voice": self.voice,
+            "input": text,
+        }
+        if self.api_key:
+            kwargs["api_key"] = self.api_key
+
+        response = litellm.speech(**kwargs)
+
+        # litellm.speech() returns an HttpxBinaryResponseContent with .read()
+        if hasattr(response, "read"):
+            audio_bytes = response.read()
+        elif hasattr(response, "content"):
+            audio_bytes = response.content
+        else:
+            audio_bytes = bytes(response)
+
+        timestamp = int(time.time())
+        # OpenAI TTS returns mp3 by default
+        ext = "mp3" if "openai" in self.model else "wav"
+        audio_file = TEMP_DIR / f"audio_{timestamp}.{ext}"
+        audio_file.write_bytes(audio_bytes)
+
+        mime_type = "audio/mpeg" if ext == "mp3" else "audio/wav"
+        return audio_bytes, mime_type
+
+
+class GeminiTTSService(BaseTTSService):
+    """Gemini TTS uses the google-genai SDK directly (not LiteLLM)
+    because Gemini TTS works via generate_content with audio modality,
+    not the standard OpenAI-compatible /audio/speech endpoint."""
+
+    def __init__(self, model: str, voice: str, api_key: str = None):
         from google import genai
-        api_key = os.environ.get("API_KEY") or os.environ.get("GOOGLE_API_KEY")
-        if not api_key:
-            raise ValueError("API_KEY or GOOGLE_API_KEY must be set for API TTS model")
-        self.client = genai.Client(api_key=api_key)
-        self.model = API_TTS_MODEL
+        key = api_key or __import__("os").environ.get("GEMINI_API_KEY") or \
+              __import__("os").environ.get("API_KEY") or \
+              __import__("os").environ.get("GOOGLE_API_KEY")
+        if not key:
+            raise ValueError("Gemini API key required for Gemini TTS")
+        self.client = genai.Client(api_key=key)
+        self.model = model.replace("gemini/", "")  # genai wants bare model name
+        self.voice = voice
 
     def synthesize(self, text: str) -> tuple[bytes, str]:
         from google.genai import types
@@ -89,7 +130,7 @@ class APITTSService(BaseTTSService):
                 response_modalities=["AUDIO"],
                 speech_config=types.SpeechConfig(
                     voice_config=types.VoiceConfig(
-                        prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name="Kore")
+                        prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=self.voice)
                     )
                 ),
             ),
@@ -98,6 +139,7 @@ class APITTSService(BaseTTSService):
         audio_data = part.inline_data.data
         mime_type = part.inline_data.mime_type or "audio/wav"
 
+        import base64
         if isinstance(audio_data, str):
             audio_data = base64.b64decode(audio_data)
 
@@ -124,27 +166,34 @@ class APITTSService(BaseTTSService):
 
 
 # ---------------------------------------------------------------------------
-# Factory
+# Factory (lazy singleton, recreated when model/provider changes)
 # ---------------------------------------------------------------------------
 
 _tts_service: Optional[BaseTTSService] = None
+_tts_service_key: Optional[str] = None
 
 
 def get_tts_service() -> BaseTTSService:
-    global _tts_service
+    global _tts_service, _tts_service_key
 
-    model_type = config["tts_model_type"]
+    provider = config["tts_provider"]
+    model = config["tts_model"]
+    voice = config.get("tts_voice", "")
+    current_key = f"{provider}:{model}:{voice}"
 
-    if _tts_service is not None:
-        current_is_local = isinstance(_tts_service, LocalTTSService)
-        if current_is_local != (model_type == "local"):
-            _tts_service = None
+    if _tts_service is not None and _tts_service_key != current_key:
+        _tts_service = None
 
     if _tts_service is None:
-        if model_type == "local":
+        if provider == "local":
             _tts_service = LocalTTSService()
+        elif provider == "gemini":
+            api_key = config.get("api_keys", {}).get("gemini")
+            _tts_service = GeminiTTSService(model=model, voice=voice or "Kore", api_key=api_key)
         else:
-            _tts_service = APITTSService()
-        print(f"[Lotaria] TTS service initialized: {_tts_service.model}")
+            api_key = config.get("api_keys", {}).get(provider)
+            _tts_service = LiteLLMTTSService(model=model, voice=voice or "alloy", api_key=api_key)
+        _tts_service_key = current_key
+        print(f"[Lotaria] TTS service initialized: {model} (voice={voice})")
 
     return _tts_service

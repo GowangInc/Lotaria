@@ -1,10 +1,9 @@
-import os
 import base64
 from io import BytesIO
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from .state import config, LOCAL_VISION_MODEL, API_VISION_MODEL
+from .state import config, LOCAL_VISION_MODEL
 
 
 class BaseVisionService(ABC):
@@ -98,58 +97,55 @@ class LocalVisionService(BaseVisionService):
         return output_text.strip()
 
 
-class APIVisionService(BaseVisionService):
-    def __init__(self):
-        from google import genai
-        api_key = os.environ.get("API_KEY") or os.environ.get("GOOGLE_API_KEY")
-        if not api_key:
-            raise ValueError("API_KEY or GOOGLE_API_KEY must be set for API vision model")
-        self.client = genai.Client(api_key=api_key)
-        self.model = API_VISION_MODEL
+class LiteLLMVisionService(BaseVisionService):
+    def __init__(self, model: str, api_key: str = None):
+        self.model = model
+        self.api_key = api_key
 
     def analyze(self, image_bytes: bytes, prompt: str) -> str:
-        image_data = base64.b64encode(image_bytes).decode("utf-8")
-        response = self.client.models.generate_content(
-            model=self.model,
-            contents=[
-                {
-                    "parts": [
-                        {"text": prompt},
-                        {
-                            "inline_data": {
-                                "mime_type": "image/png",
-                                "data": image_data,
-                            }
-                        },
-                    ]
-                }
-            ],
-        )
-        return response.text
+        import litellm
+        b64 = base64.b64encode(image_bytes).decode()
+        kwargs = {
+            "model": self.model,
+            "messages": [{
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{b64}"}},
+                ],
+            }],
+        }
+        if self.api_key:
+            kwargs["api_key"] = self.api_key
+        response = litellm.completion(**kwargs)
+        return response.choices[0].message.content
 
 
 # ---------------------------------------------------------------------------
-# Factory (lazy singleton, recreated when model type changes)
+# Factory (lazy singleton, recreated when model/provider changes)
 # ---------------------------------------------------------------------------
 
 _vision_service: Optional[BaseVisionService] = None
+_vision_service_key: Optional[str] = None
 
 
 def get_vision_service() -> BaseVisionService:
-    global _vision_service
+    global _vision_service, _vision_service_key
 
-    model_type = config["vision_model_type"]
+    provider = config["vision_provider"]
+    model = config["vision_model"]
+    current_key = f"{provider}:{model}"
 
-    if _vision_service is not None:
-        current_is_local = isinstance(_vision_service, LocalVisionService)
-        if current_is_local != (model_type == "local"):
-            _vision_service = None
+    if _vision_service is not None and _vision_service_key != current_key:
+        _vision_service = None
 
     if _vision_service is None:
-        if model_type == "local":
+        if provider == "local":
             _vision_service = LocalVisionService()
         else:
-            _vision_service = APIVisionService()
-        print(f"[Lotaria] Vision service initialized: {_vision_service.model}")
+            api_key = config.get("api_keys", {}).get(provider)
+            _vision_service = LiteLLMVisionService(model=model, api_key=api_key)
+        _vision_service_key = current_key
+        print(f"[Lotaria] Vision service initialized: {model}")
 
     return _vision_service

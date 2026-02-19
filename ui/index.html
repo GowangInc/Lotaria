@@ -69,7 +69,6 @@
     cursor: grab;
     position: relative;
     z-index: 5;
-    /* pywebview drag region */
   }
   #character:active { cursor: grabbing; }
 
@@ -97,7 +96,7 @@
   }
   #character.thinking { animation: think-pulse 0.8s ease-in-out infinite; }
 
-  /* Eye blink (handled via JS toggling class) */
+  /* Eye blink */
   .eye-open  { display: block; }
   .eye-shut  { display: none; }
   #character.blink .eye-open  { display: none; }
@@ -157,23 +156,18 @@
     font-size: 14px;
   }
 
-  /* Sub-menu for intervals etc */
-  .ctx-sub {
-    position: relative;
-  }
+  /* Sub-menu for intervals */
   .ctx-sub > .ctx-submenu {
     display: none;
-    position: absolute;
-    left: 100%;
-    top: -6px;
-    background: #16213e;
-    border: 1px solid #e94560;
-    border-radius: 8px;
-    padding: 6px 0;
-    min-width: 140px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    padding: 2px 0 2px 12px;
+    background: #111a30;
+    border-top: 1px solid #2a2a4a;
   }
   .ctx-sub:hover > .ctx-submenu { display: block; }
+  .ctx-sub > .ctx-submenu .ctx-item {
+    font-size: 12px;
+    padding: 6px 16px;
+  }
 
   /* ---- Status indicator ---- */
   #status {
@@ -195,6 +189,163 @@
     0%, 100% { opacity: 1; }
     50% { opacity: 0.5; }
   }
+
+  /* ---- Settings Modal ---- */
+  #settings-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 200;
+    justify-content: center;
+    align-items: center;
+  }
+  #settings-overlay.open {
+    display: flex;
+  }
+
+  #settings-modal {
+    background: #16213e;
+    border: 2px solid #e94560;
+    border-radius: 12px;
+    width: 360px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 20px;
+    color: #e0e0e0;
+    font-size: 13px;
+  }
+
+  #settings-modal h2 {
+    margin: 0 0 16px 0;
+    font-size: 16px;
+    color: #e94560;
+    text-align: center;
+  }
+
+  .settings-section {
+    margin-bottom: 16px;
+  }
+
+  .settings-section h3 {
+    font-size: 12px;
+    text-transform: uppercase;
+    color: #888;
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+  }
+
+  .key-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+    gap: 6px;
+  }
+
+  .key-row label {
+    width: 90px;
+    font-size: 12px;
+    color: #aaa;
+    flex-shrink: 0;
+  }
+
+  .key-row input {
+    flex: 1;
+    background: #111a30;
+    border: 1px solid #2a2a4a;
+    border-radius: 4px;
+    padding: 5px 8px;
+    color: #e0e0e0;
+    font-size: 12px;
+    font-family: monospace;
+    outline: none;
+  }
+  .key-row input:focus {
+    border-color: #e94560;
+  }
+
+  .key-row .key-status {
+    width: 18px;
+    text-align: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .key-row .key-status.set { color: #00ff88; }
+  .key-row .key-status.unset { color: #555; }
+
+  .settings-select {
+    width: 100%;
+    background: #111a30;
+    border: 1px solid #2a2a4a;
+    border-radius: 4px;
+    padding: 6px 8px;
+    color: #e0e0e0;
+    font-size: 12px;
+    outline: none;
+    margin-bottom: 6px;
+    cursor: pointer;
+  }
+  .settings-select:focus {
+    border-color: #e94560;
+  }
+
+  .select-group {
+    margin-bottom: 8px;
+  }
+
+  .select-group label {
+    display: block;
+    font-size: 11px;
+    color: #888;
+    margin-bottom: 3px;
+  }
+
+  .settings-btn-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .settings-btn {
+    flex: 1;
+    padding: 8px;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  .settings-btn.primary {
+    background: #e94560;
+    color: #fff;
+  }
+  .settings-btn.primary:hover {
+    background: #d63651;
+  }
+
+  .settings-btn.secondary {
+    background: #2a2a4a;
+    color: #e0e0e0;
+  }
+  .settings-btn.secondary:hover {
+    background: #3a3a5a;
+  }
+
+  .save-keys-btn {
+    background: #e94560;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-size: 11px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .save-keys-btn:hover {
+    background: #d63651;
+  }
 </style>
 </head>
 <body>
@@ -214,8 +365,8 @@
         <rect x="40" y="30" width="12" height="14" rx="3" fill="#e94560"/>
         <rect x="68" y="30" width="12" height="14" rx="3" fill="#e94560"/>
         <!-- Pupils -->
-        <rect x="44" y="36" width="5" height="6" rx="1" fill="#fff"/>
-        <rect x="72" y="36" width="5" height="6" rx="1" fill="#fff"/>
+        <rect id="pupil-l" x="44" y="36" width="5" height="6" rx="1" fill="#fff"/>
+        <rect id="pupil-r" x="72" y="36" width="5" height="6" rx="1" fill="#fff"/>
       </g>
       <!-- Eyes shut (blink) -->
       <g class="eye-shut">
@@ -249,37 +400,9 @@
     <span class="ctx-label" id="ctx-monitor-label">Start Watching</span>
   </div>
   <div class="ctx-sep"></div>
-  <div class="ctx-sub">
-    <div class="ctx-item">
-      <span class="ctx-label">Vision Model</span>
-      <span class="ctx-value" id="ctx-vision-val">local</span>
-    </div>
-    <div class="ctx-submenu">
-      <div class="ctx-item" data-action="set-vision" data-value="local">
-        <span class="ctx-label">Local (Qwen3-VL)</span>
-        <span class="ctx-check" id="chk-vision-local"></span>
-      </div>
-      <div class="ctx-item" data-action="set-vision" data-value="api">
-        <span class="ctx-label">API (Gemini)</span>
-        <span class="ctx-check" id="chk-vision-api"></span>
-      </div>
-    </div>
-  </div>
-  <div class="ctx-sub">
-    <div class="ctx-item">
-      <span class="ctx-label">TTS Model</span>
-      <span class="ctx-value" id="ctx-tts-val">local</span>
-    </div>
-    <div class="ctx-submenu">
-      <div class="ctx-item" data-action="set-tts" data-value="local">
-        <span class="ctx-label">Local (Piper)</span>
-        <span class="ctx-check" id="chk-tts-local"></span>
-      </div>
-      <div class="ctx-item" data-action="set-tts" data-value="api">
-        <span class="ctx-label">API (Gemini)</span>
-        <span class="ctx-check" id="chk-tts-api"></span>
-      </div>
-    </div>
+  <div class="ctx-item" data-action="settings">
+    <span class="ctx-label">Settings...</span>
+    <span class="ctx-value" id="ctx-settings-summary"></span>
   </div>
   <div class="ctx-sub">
     <div class="ctx-item">
@@ -305,16 +428,69 @@
   <div class="ctx-item danger" data-action="quit">Quit</div>
 </div>
 
+<!-- Settings Modal -->
+<div id="settings-overlay">
+  <div id="settings-modal">
+    <h2>Settings</h2>
+
+    <!-- API Keys -->
+    <div class="settings-section">
+      <h3>API Keys</h3>
+      <div id="api-keys-list"></div>
+    </div>
+
+    <!-- Vision -->
+    <div class="settings-section">
+      <h3>Vision</h3>
+      <div class="select-group">
+        <label>Provider</label>
+        <select class="settings-select" id="vision-provider-select"></select>
+      </div>
+      <div class="select-group">
+        <label>Model</label>
+        <select class="settings-select" id="vision-model-select"></select>
+      </div>
+    </div>
+
+    <!-- TTS -->
+    <div class="settings-section">
+      <h3>Text-to-Speech</h3>
+      <div class="select-group">
+        <label>Provider</label>
+        <select class="settings-select" id="tts-provider-select"></select>
+      </div>
+      <div class="select-group">
+        <label>Model</label>
+        <select class="settings-select" id="tts-model-select"></select>
+      </div>
+      <div class="select-group" id="tts-voice-group">
+        <label>Voice</label>
+        <select class="settings-select" id="tts-voice-select"></select>
+      </div>
+    </div>
+
+    <div class="settings-btn-row">
+      <button class="settings-btn secondary" id="settings-cancel">Cancel</button>
+      <button class="settings-btn primary" id="settings-save">Save</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ========== State ==========
 let cfg = {
   is_active: false,
   interval: 300,
-  vision_model_type: 'local',
-  tts_model_type: 'local',
+  vision_provider: 'gemini',
+  vision_model: 'gemini/gemini-2.0-flash',
+  tts_provider: 'gemini',
+  tts_model: 'gemini/gemini-2.5-flash-preview-tts',
+  tts_voice: 'Kore',
+  api_keys: {},
   speech_bubble_enabled: true,
   audio_enabled: true,
 };
+let providers = {};
 let bubbleTimeout = null;
 let currentAudio = null;
 let isRoasting = false;
@@ -324,6 +500,7 @@ const character = document.getElementById('character');
 const bubble = document.getElementById('bubble');
 const ctxMenu = document.getElementById('ctx-menu');
 const statusDot = document.getElementById('status');
+const settingsOverlay = document.getElementById('settings-overlay');
 
 // ========== Eye blinking ==========
 function blink() {
@@ -348,15 +525,9 @@ function updateMenuState() {
   // Status dot
   statusDot.className = cfg.is_active ? 'active' : '';
 
-  // Vision check
-  document.getElementById('chk-vision-local').textContent = cfg.vision_model_type === 'local' ? '\u2713' : '';
-  document.getElementById('chk-vision-api').textContent = cfg.vision_model_type === 'api' ? '\u2713' : '';
-  document.getElementById('ctx-vision-val').textContent = cfg.vision_model_type;
-
-  // TTS check
-  document.getElementById('chk-tts-local').textContent = cfg.tts_model_type === 'local' ? '\u2713' : '';
-  document.getElementById('chk-tts-api').textContent = cfg.tts_model_type === 'api' ? '\u2713' : '';
-  document.getElementById('ctx-tts-val').textContent = cfg.tts_model_type;
+  // Settings summary
+  const vShort = cfg.vision_model ? cfg.vision_model.split('/').pop() : '?';
+  document.getElementById('ctx-settings-summary').textContent = vShort;
 
   // Interval
   const m = Math.round(cfg.interval / 60);
@@ -371,12 +542,10 @@ function updateMenuState() {
 function showBubble(text) {
   if (!cfg.speech_bubble_enabled) return;
 
-  // Clear previous
   clearTimeout(bubbleTimeout);
   bubble.textContent = '';
   bubble.classList.add('visible');
 
-  // Typewriter effect
   let i = 0;
   const speed = 25;
   function typeChar() {
@@ -388,7 +557,6 @@ function showBubble(text) {
   }
   typeChar();
 
-  // Auto-dismiss after 10s (or when audio ends)
   bubbleTimeout = setTimeout(hideBubble, Math.max(10000, text.length * speed + 2000));
 }
 
@@ -404,7 +572,6 @@ function playAudio(b64) {
   currentAudio = new Audio('data:audio/wav;base64,' + b64);
   currentAudio.onended = () => {
     currentAudio = null;
-    // Dismiss bubble shortly after audio ends
     setTimeout(hideBubble, 1500);
   };
   currentAudio.play().catch(e => console.warn('Audio play failed:', e));
@@ -425,7 +592,6 @@ function deliverRoast(result) {
   showBubble(result.text);
   playAudio(result.audio_b64);
 
-  // Return to idle after a delay
   const duration = result.audio_b64 ? 8000 : 4000;
   setTimeout(() => {
     if (isRoasting) {
@@ -440,15 +606,236 @@ function onThinkingStart() {
   showBubble('...');
 }
 
+// ========== Settings Modal ==========
+async function openSettings() {
+  const api = window.pywebview ? window.pywebview.api : null;
+  if (!api) return;
+
+  // Load providers and current config
+  providers = await api.get_providers();
+  const maskedKeys = await api.get_api_keys();
+
+  buildApiKeysUI(maskedKeys);
+  buildVisionUI();
+  buildTtsUI();
+
+  settingsOverlay.classList.add('open');
+}
+
+function closeSettings() {
+  settingsOverlay.classList.remove('open');
+}
+
+function buildApiKeysUI(maskedKeys) {
+  const container = document.getElementById('api-keys-list');
+  container.innerHTML = '';
+
+  for (const [provKey, prov] of Object.entries(providers)) {
+    if (!prov.env_var) continue; // skip "local"
+
+    const row = document.createElement('div');
+    row.className = 'key-row';
+
+    const hasKey = maskedKeys[provKey] && maskedKeys[provKey].length > 0;
+
+    row.innerHTML = `
+      <label>${prov.name}</label>
+      <input type="password" id="key-input-${provKey}"
+             placeholder="${hasKey ? maskedKeys[provKey] : 'Enter API key...'}"
+             autocomplete="off" />
+      <span class="key-status ${hasKey ? 'set' : 'unset'}"
+            id="key-status-${provKey}">${hasKey ? '\u2713' : '\u2022'}</span>
+      <button class="save-keys-btn" data-provider="${provKey}">Save</button>
+    `;
+    container.appendChild(row);
+  }
+
+  // Individual save buttons
+  container.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.save-keys-btn');
+    if (!btn) return;
+    const prov = btn.dataset.provider;
+    const input = document.getElementById('key-input-' + prov);
+    const val = input.value.trim();
+    if (!val) return;
+
+    const api = window.pywebview.api;
+    await api.save_api_key(prov, val);
+    input.value = '';
+    input.placeholder = '...' + val.slice(-4);
+    const statusEl = document.getElementById('key-status-' + prov);
+    statusEl.textContent = '\u2713';
+    statusEl.className = 'key-status set';
+
+    // Refresh dropdowns since available providers may have changed
+    buildVisionUI();
+    buildTtsUI();
+  });
+}
+
+function getProvidersWithKeys() {
+  // Providers that have a key set (check cfg.api_keys or env-loaded keys)
+  const withKeys = new Set(['local']); // local always available
+  for (const [provKey, prov] of Object.entries(providers)) {
+    if (!prov.env_var) continue;
+    const statusEl = document.getElementById('key-status-' + provKey);
+    if (statusEl && statusEl.classList.contains('set')) {
+      withKeys.add(provKey);
+    }
+  }
+  return withKeys;
+}
+
+function buildVisionUI() {
+  const provSelect = document.getElementById('vision-provider-select');
+  const modelSelect = document.getElementById('vision-model-select');
+  const availableProvs = getProvidersWithKeys();
+
+  provSelect.innerHTML = '';
+  for (const [provKey, prov] of Object.entries(providers)) {
+    if (prov.vision_models.length === 0) continue;
+    if (!availableProvs.has(provKey)) continue;
+    const opt = document.createElement('option');
+    opt.value = provKey;
+    opt.textContent = prov.name;
+    if (provKey === cfg.vision_provider) opt.selected = true;
+    provSelect.appendChild(opt);
+  }
+
+  function updateVisionModels() {
+    const selProv = provSelect.value;
+    const prov = providers[selProv];
+    modelSelect.innerHTML = '';
+    if (!prov) return;
+    for (const m of prov.vision_models) {
+      const opt = document.createElement('option');
+      opt.value = m;
+      opt.textContent = m.split('/').pop();
+      if (m === cfg.vision_model) opt.selected = true;
+      modelSelect.appendChild(opt);
+    }
+  }
+
+  provSelect.onchange = updateVisionModels;
+  updateVisionModels();
+}
+
+function buildTtsUI() {
+  const provSelect = document.getElementById('tts-provider-select');
+  const modelSelect = document.getElementById('tts-model-select');
+  const voiceSelect = document.getElementById('tts-voice-select');
+  const voiceGroup = document.getElementById('tts-voice-group');
+  const availableProvs = getProvidersWithKeys();
+
+  provSelect.innerHTML = '';
+  for (const [provKey, prov] of Object.entries(providers)) {
+    if (prov.tts_models.length === 0) continue;
+    if (!availableProvs.has(provKey)) continue;
+    const opt = document.createElement('option');
+    opt.value = provKey;
+    opt.textContent = prov.name;
+    if (provKey === cfg.tts_provider) opt.selected = true;
+    provSelect.appendChild(opt);
+  }
+
+  function updateTtsModels() {
+    const selProv = provSelect.value;
+    const prov = providers[selProv];
+    modelSelect.innerHTML = '';
+    voiceSelect.innerHTML = '';
+    if (!prov) return;
+
+    for (const m of prov.tts_models) {
+      const opt = document.createElement('option');
+      opt.value = m;
+      opt.textContent = m.split('/').pop();
+      if (m === cfg.tts_model) opt.selected = true;
+      modelSelect.appendChild(opt);
+    }
+
+    if (prov.tts_voices && prov.tts_voices.length > 0) {
+      voiceGroup.style.display = '';
+      for (const v of prov.tts_voices) {
+        const opt = document.createElement('option');
+        opt.value = v;
+        opt.textContent = v;
+        if (v === cfg.tts_voice) opt.selected = true;
+        voiceSelect.appendChild(opt);
+      }
+    } else {
+      voiceGroup.style.display = 'none';
+    }
+  }
+
+  provSelect.onchange = updateTtsModels;
+  updateTtsModels();
+}
+
+// Save & Cancel
+document.getElementById('settings-save').addEventListener('click', async () => {
+  const api = window.pywebview ? window.pywebview.api : null;
+  if (!api) return;
+
+  const visionProv = document.getElementById('vision-provider-select').value;
+  const visionModel = document.getElementById('vision-model-select').value;
+  const ttsProv = document.getElementById('tts-provider-select').value;
+  const ttsModel = document.getElementById('tts-model-select').value;
+  const ttsVoice = document.getElementById('tts-voice-select').value || '';
+
+  await api.set_vision_config(visionProv, visionModel);
+  await api.set_tts_config(ttsProv, ttsModel, ttsVoice);
+
+  cfg.vision_provider = visionProv;
+  cfg.vision_model = visionModel;
+  cfg.tts_provider = ttsProv;
+  cfg.tts_model = ttsModel;
+  cfg.tts_voice = ttsVoice;
+
+  updateMenuState();
+  closeSettings();
+});
+
+document.getElementById('settings-cancel').addEventListener('click', closeSettings);
+
+// Close modal on overlay click (but not modal itself)
+settingsOverlay.addEventListener('click', (e) => {
+  if (e.target === settingsOverlay) closeSettings();
+});
+
+// ========== Eye Tracking ==========
+const pupilL = document.getElementById('pupil-l');
+const pupilR = document.getElementById('pupil-r');
+// Base positions (center of eye socket)
+const eyeL = { cx: 46, cy: 37 }; // left eye center
+const eyeR = { cx: 74, cy: 37 }; // right eye center
+const maxOffset = 3; // max pixel offset for pupil movement
+
+document.addEventListener('mousemove', (e) => {
+  const charRect = character.getBoundingClientRect();
+  const charCX = charRect.left + charRect.width / 2;
+  const charCY = charRect.top + charRect.height * 0.3; // eyes are in upper portion
+
+  const dx = e.clientX - charCX;
+  const dy = e.clientY - charCY;
+  const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+
+  const ox = Math.round((dx / dist) * maxOffset);
+  const oy = Math.round((dy / dist) * Math.min(maxOffset, 2));
+
+  pupilL.setAttribute('x', 44 + ox);
+  pupilL.setAttribute('y', 36 + oy);
+  pupilR.setAttribute('x', 72 + ox);
+  pupilR.setAttribute('y', 36 + oy);
+});
+
 // ========== Context Menu ==========
 document.addEventListener('contextmenu', (e) => {
   e.preventDefault();
+  if (settingsOverlay.classList.contains('open')) return;
   updateMenuState();
-  // Position menu
   let x = e.clientX;
   let y = e.clientY;
   ctxMenu.classList.add('open');
-  // Adjust if off-screen
   const rect = ctxMenu.getBoundingClientRect();
   if (x + rect.width > window.innerWidth) x = window.innerWidth - rect.width - 4;
   if (y + rect.height > window.innerHeight) y = window.innerHeight - rect.height - 4;
@@ -456,8 +843,10 @@ document.addEventListener('contextmenu', (e) => {
   ctxMenu.style.top = y + 'px';
 });
 
-document.addEventListener('click', () => {
-  ctxMenu.classList.remove('open');
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#ctx-menu')) {
+    ctxMenu.classList.remove('open');
+  }
 });
 
 // Menu actions
@@ -473,7 +862,6 @@ ctxMenu.addEventListener('click', async (e) => {
   switch (action) {
     case 'roast':
       if (!api) break;
-      // roast_now is called in a thread by pywebview, returns a promise
       const result = await api.roast_now();
       if (result) deliverRoast(result);
       break;
@@ -485,18 +873,8 @@ ctxMenu.addEventListener('click', async (e) => {
       updateMenuState();
       break;
 
-    case 'set-vision':
-      if (!api) break;
-      await api.set_config('vision_model_type', value);
-      cfg.vision_model_type = value;
-      updateMenuState();
-      break;
-
-    case 'set-tts':
-      if (!api) break;
-      await api.set_config('tts_model_type', value);
-      cfg.tts_model_type = value;
-      updateMenuState();
+    case 'settings':
+      openSettings();
       break;
 
     case 'set-interval':

@@ -161,8 +161,8 @@ def load_config():
             for key in _PERSIST_KEYS:
                 if key in saved:
                     config[key] = saved[key]
-            print(f"[Lotaria] Loaded config: vision={config['vision_provider']}/{config['vision_model']}, "
-                  f"tts={config['tts_provider']}/{config['tts_model']}")
+            print(f"[Lotaria] Loaded config: vision={config['vision_model']}, "
+                  f"tts={config['tts_model']}")
         except Exception as e:
             print(f"[Lotaria] Failed to load config: {e}")
 

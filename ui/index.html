@@ -163,7 +163,7 @@
     background: #111a30;
     border-top: 1px solid #2a2a4a;
   }
-  .ctx-sub:hover > .ctx-submenu { display: block; }
+  .ctx-sub.expanded > .ctx-submenu { display: block; }
   .ctx-sub > .ctx-submenu .ctx-item {
     font-size: 12px;
     padding: 6px 16px;
@@ -404,8 +404,8 @@
     <span class="ctx-label">Settings...</span>
     <span class="ctx-value" id="ctx-settings-summary"></span>
   </div>
-  <div class="ctx-sub">
-    <div class="ctx-item">
+  <div class="ctx-sub" id="interval-sub">
+    <div class="ctx-item" data-action="toggle-submenu" data-target="interval-sub">
       <span class="ctx-label">Interval</span>
       <span class="ctx-value" id="ctx-interval-val">5m</span>
     </div>
@@ -539,7 +539,7 @@ function updateMenuState() {
 }
 
 // ========== Speech Bubble ==========
-function showBubble(text) {
+function showBubble(text, hasAudio) {
   if (!cfg.speech_bubble_enabled) return;
 
   clearTimeout(bubbleTimeout);
@@ -557,7 +557,11 @@ function showBubble(text) {
   }
   typeChar();
 
-  bubbleTimeout = setTimeout(hideBubble, Math.max(10000, text.length * speed + 2000));
+  // If audio is playing, let the audio onended handler dismiss the bubble.
+  // Otherwise, auto-dismiss after a text-based delay.
+  if (!hasAudio) {
+    bubbleTimeout = setTimeout(hideBubble, Math.max(10000, text.length * speed + 2000));
+  }
 }
 
 function hideBubble() {
@@ -572,7 +576,14 @@ function playAudio(b64) {
   currentAudio = new Audio('data:audio/wav;base64,' + b64);
   currentAudio.onended = () => {
     currentAudio = null;
-    setTimeout(hideBubble, 1500);
+    // Dismiss bubble and stop roasting animation after audio ends
+    setTimeout(() => {
+      hideBubble();
+      if (isRoasting) {
+        character.className = 'idle pywebview-drag-region';
+        isRoasting = false;
+      }
+    }, 1500);
   };
   currentAudio.play().catch(e => console.warn('Audio play failed:', e));
 }
@@ -589,21 +600,25 @@ function deliverRoast(result) {
   isRoasting = true;
   character.className = 'roasting pywebview-drag-region';
 
-  showBubble(result.text);
+  const hasAudio = cfg.audio_enabled && !!result.audio_b64;
+  showBubble(result.text, hasAudio);
   playAudio(result.audio_b64);
 
-  const duration = result.audio_b64 ? 8000 : 4000;
-  setTimeout(() => {
-    if (isRoasting) {
-      character.className = 'idle pywebview-drag-region';
-      isRoasting = false;
-    }
-  }, duration);
+  // If no audio, use a fixed timer for the roasting animation.
+  // If audio is playing, the onended handler will handle cleanup.
+  if (!hasAudio) {
+    setTimeout(() => {
+      if (isRoasting) {
+        character.className = 'idle pywebview-drag-region';
+        isRoasting = false;
+      }
+    }, 4000);
+  }
 }
 
 function onThinkingStart() {
   character.className = 'thinking pywebview-drag-region';
-  showBubble('...');
+  showBubble('...', false);
 }
 
 // ========== Settings Modal ==========
@@ -833,6 +848,8 @@ document.addEventListener('contextmenu', (e) => {
   e.preventDefault();
   if (settingsOverlay.classList.contains('open')) return;
   updateMenuState();
+  // Reset any expanded submenus
+  document.querySelectorAll('.ctx-sub.expanded').forEach(el => el.classList.remove('expanded'));
   let x = e.clientX;
   let y = e.clientY;
   ctxMenu.classList.add('open');
@@ -876,6 +893,12 @@ ctxMenu.addEventListener('click', async (e) => {
     case 'settings':
       openSettings();
       break;
+
+    case 'toggle-submenu': {
+      const target = document.getElementById(item.dataset.target);
+      if (target) target.classList.toggle('expanded');
+      return; // don't close menu
+    }
 
     case 'set-interval':
       if (!api) break;

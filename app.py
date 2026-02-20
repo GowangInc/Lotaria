@@ -1,11 +1,14 @@
 import os
+import sys
 import json
+import signal
+import atexit
 import webview
 from dotenv import load_dotenv
 
 load_dotenv()
 
-from services.state import load_config, load_history, cleanup_old_files, config
+from services.state import load_config, load_history, cleanup_old_files, config, save_config
 from bridge import LotariaBridge
 from monitor import MonitoringThread
 
@@ -13,6 +16,12 @@ from monitor import MonitoringThread
 def main():
     # Startup
     load_config()
+    
+    # Check for --reset flag to force first-run mode
+    if '--reset' in sys.argv:
+        print("[Lotaria] Reset flag detected - forcing first-run mode")
+        config['first_run'] = True
+        save_config()
     load_history()
     cleanup_old_files()
 
@@ -27,13 +36,13 @@ def main():
         title="Lotaria",
         url=html_path,
         js_api=bridge,
-        width=400,
-        height=350,
+        width=420,
+        height=400,
         frameless=True,
         transparent=True,
         on_top=True,
         easy_drag=False,
-        resizable=False,
+        resizable=True,
     )
 
     bridge.window = window
@@ -57,23 +66,44 @@ def main():
         payload = json.dumps(dict(config))
         window.evaluate_js(f"onConfigLoaded({payload})")
 
-        # Auto-start monitoring
-        bridge.monitor_thread = MonitoringThread(
-            on_roast=bridge._push_roast,
-            window_ref=window,
-        )
-        bridge.monitor_thread.start()
-        print("[Lotaria] Auto-started monitoring")
+        # Auto-start monitoring (skip on first run - let user complete onboarding)
+        if not config.get('first_run', True):
+            bridge.monitor_thread = MonitoringThread(
+                on_roast=bridge._push_roast,
+                window_ref=window,
+                processing_lock=bridge._processing_lock,
+            )
+            bridge.monitor_thread.start()
+            config["is_active"] = True
+            print("[Lotaria] Auto-started monitoring")
 
     window.events.loaded += on_loaded
 
+    def cleanup():
+        if bridge.monitor_thread and bridge.monitor_thread.is_alive():
+            bridge.monitor_thread.stop()
+            bridge.monitor_thread.join(timeout=2)
+
+    def sigint_handler(sig, frame):
+        print("\n[Lotaria] Ctrl+C received, shutting down...")
+        cleanup()
+        try:
+            window.destroy()
+        except Exception:
+            pass
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, sigint_handler)
+    atexit.register(cleanup)
+
     print("[Lotaria] Starting desktop pet...")
-    webview.start(gui="qt", debug=False)
+    try:
+        webview.start(gui="qt", debug=False)
+    except KeyboardInterrupt:
+        pass
 
     # Cleanup on exit
-    if bridge.monitor_thread and bridge.monitor_thread.is_alive():
-        bridge.monitor_thread.stop()
-        bridge.monitor_thread.join(timeout=2)
+    cleanup()
     print("[Lotaria] Goodbye!")
 
 

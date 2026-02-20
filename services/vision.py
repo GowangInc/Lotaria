@@ -5,6 +5,10 @@ from typing import Optional
 
 from .state import config, LOCAL_VISION_MODEL
 
+import litellm
+litellm.set_verbose = False
+litellm.suppress_debug_info = True
+
 
 class BaseVisionService(ABC):
     model: str = "unknown"
@@ -27,7 +31,21 @@ class LocalVisionService(BaseVisionService):
             return
 
         print(f"[Lotaria] Loading local vision model: {self.model}")
-        import torch
+        
+        try:
+            import torch
+        except OSError as e:
+            error_msg = str(e)
+            if "DLL" in error_msg or "c10.dll" in error_msg:
+                raise RuntimeError(
+                    "PyTorch failed to load. This usually means:\n"
+                    "1. Missing Visual C++ Redistributable (install from microsoft.com)\n"
+                    "2. CUDA version mismatch\n"
+                    "3. Corrupted PyTorch installation\n\n"
+                    "Please use API mode instead (Gemini, OpenAI), or reinstall PyTorch:\n"
+                    "pip install torch torchvision --force-reinstall --index-url https://download.pytorch.org/whl/cpu"
+                ) from e
+            raise
 
         try:
             from modelscope import AutoProcessor, AutoModelForVision2Seq
@@ -103,7 +121,6 @@ class LiteLLMVisionService(BaseVisionService):
         self.api_key = api_key
 
     def analyze(self, image_bytes: bytes, prompt: str) -> str:
-        import litellm
         b64 = base64.b64encode(image_bytes).decode()
         kwargs = {
             "model": self.model,

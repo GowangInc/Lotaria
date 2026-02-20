@@ -124,16 +124,16 @@
 
       0%,
       100% {
-        transform: translateY(0);
+        transform: translateY(0) scale(1);
       }
 
       50% {
-        transform: translateY(-6px);
+        transform: translateY(-8px) scale(0.98, 1.02);
       }
     }
 
     #character.idle {
-      animation: bob 2.5s ease-in-out infinite;
+      animation: bob 2.5s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
     }
 
     /* Roasting shake */
@@ -141,28 +141,36 @@
 
       0%,
       100% {
-        transform: translateX(0) rotate(0);
+        transform: translateX(0) translateY(0) rotate(0);
       }
 
-      20% {
-        transform: translateX(-4px) rotate(-2deg);
+      15% {
+        transform: translateX(-4px) translateY(-2px) rotate(-3deg);
       }
 
-      40% {
-        transform: translateX(4px) rotate(2deg);
+      30% {
+        transform: translateX(5px) translateY(1px) rotate(3deg);
+      }
+
+      45% {
+        transform: translateX(-5px) translateY(-1px) rotate(-4deg);
       }
 
       60% {
-        transform: translateX(-3px) rotate(-1deg);
+        transform: translateX(4px) translateY(2px) rotate(2deg);
       }
 
-      80% {
-        transform: translateX(3px) rotate(1deg);
+      75% {
+        transform: translateX(-3px) translateY(-1px) rotate(-2deg);
+      }
+
+      90% {
+        transform: translateX(2px) translateY(1px) rotate(1deg);
       }
     }
 
     #character.roasting {
-      animation: shake 0.4s ease-in-out infinite;
+      animation: shake 0.35s ease-in-out infinite;
     }
 
     /* Thinking pulse */
@@ -170,17 +178,56 @@
 
       0%,
       100% {
-        transform: scale(1);
+        transform: translateY(0) scale(1) rotate(0);
       }
 
-      50% {
-        transform: scale(1.06);
+      25% {
+        transform: translateY(-3px) scale(1.02) rotate(-2deg);
+      }
+
+      75% {
+        transform: translateY(-3px) scale(1.02) rotate(2deg);
       }
     }
 
     #character.thinking {
-      animation: think-pulse 0.8s ease-in-out infinite;
+      animation: think-pulse 1.2s ease-in-out infinite;
     }
+
+    /* Pet visibility */
+    .pet-svg {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    #character[data-pet="default"] .pet-default {
+      display: block;
+    }
+
+    #character[data-pet="cat"] .pet-cat {
+      display: block;
+    }
+
+    #character[data-pet="dog"] .pet-dog {
+      display: block;
+    }
+
+    #character[data-pet="alien"] .pet-alien {
+      display: block;
+    }
+
+    #character[data-pet="ghost"] .pet-ghost {
+      display: block;
+    }
+
+    #character[data-pet="owl"] .pet-owl {
+      display: block;
+    }
+
 
     /* Eye blink */
     .eye-open {
@@ -878,39 +925,182 @@
     <div id="bubble"></div>
 
     <!-- Character (drag region) -->
-    <div id="character" class="idle pywebview-drag-region">
-      <svg viewBox="0 0 120 140" width="120" height="140" xmlns="http://www.w3.org/2000/svg">
-        <!-- Body -->
+    <div id="character" class="idle pywebview-drag-region" data-pet="default">
+
+      <!-- DEFAULT -->
+      <svg class="pet-svg pet-default" viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
         <rect x="20" y="50" width="80" height="70" rx="16" fill="#e94560" />
-        <!-- Head -->
         <rect x="25" y="10" width="70" height="55" rx="14" fill="#1a1a2e" stroke="#e94560" stroke-width="2" />
-        <!-- Eyes open -->
         <g class="eye-open">
           <rect x="40" y="30" width="12" height="14" rx="3" fill="#e94560" />
           <rect x="68" y="30" width="12" height="14" rx="3" fill="#e94560" />
-          <!-- Pupils -->
-          <rect id="pupil-l" x="44" y="36" width="5" height="6" rx="1" fill="#fff" />
-          <rect id="pupil-r" x="72" y="36" width="5" height="6" rx="1" fill="#fff" />
+          <rect class="pupil" id="pupil-l" x="44" y="36" width="5" height="6" rx="1" fill="#fff"
+            style="transition: transform 0.1s ease-out;" />
+          <rect class="pupil" id="pupil-r" x="72" y="36" width="5" height="6" rx="1" fill="#fff"
+            style="transition: transform 0.1s ease-out;" />
         </g>
-        <!-- Eyes shut (blink) -->
         <g class="eye-shut">
           <line x1="40" y1="37" x2="52" y2="37" stroke="#e94560" stroke-width="3" stroke-linecap="round" />
           <line x1="68" y1="37" x2="80" y2="37" stroke="#e94560" stroke-width="3" stroke-linecap="round" />
         </g>
-        <!-- Mouth closed (smirk) -->
         <path class="mouth-closed" d="M48 52 Q60 58 72 52" stroke="#e94560" stroke-width="2" fill="none"
           stroke-linecap="round" />
-        <!-- Mouth open (roasting) -->
         <ellipse class="mouth-open" cx="60" cy="52" rx="10" ry="6" fill="#e94560" />
-        <!-- Arms -->
         <rect x="8" y="60" width="14" height="40" rx="7" fill="#e94560" />
         <rect x="98" y="60" width="14" height="40" rx="7" fill="#e94560" />
-        <!-- Feet -->
         <rect x="30" y="115" width="22" height="14" rx="7" fill="#e94560" />
         <rect x="68" y="115" width="22" height="14" rx="7" fill="#e94560" />
-        <!-- Devil horns -->
         <polygon points="30,14 38,2 40,18" fill="#e94560" />
         <polygon points="90,14 82,2 80,18" fill="#e94560" />
+      </svg>
+
+      <!-- CAT -->
+      <svg class="pet-svg pet-cat" viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
+        <path d="M80 110 C 110 110, 110 70, 90 60" stroke="#e67e22" stroke-width="12" stroke-linecap="round"
+          fill="none" />
+        <ellipse cx="60" cy="90" rx="35" ry="40" fill="#e67e22" />
+        <ellipse cx="60" cy="100" rx="25" ry="25" fill="#f39c12" />
+        <rect x="35" y="120" width="12" height="20" rx="6" fill="#d35400" />
+        <rect x="73" y="120" width="12" height="20" rx="6" fill="#d35400" />
+        <circle cx="60" cy="45" r="35" fill="#e67e22" />
+        <polygon points="25,30 35,5 45,20" fill="#e67e22" />
+        <polygon points="32,23 35,11 40,21" fill="#f5b7b1" />
+        <polygon points="95,30 85,5 75,20" fill="#e67e22" />
+        <polygon points="88,23 85,11 80,21" fill="#f5b7b1" />
+        <g class="eye-open">
+          <ellipse cx="45" cy="40" rx="8" ry="12" fill="#fff" />
+          <ellipse cx="75" cy="40" rx="8" ry="12" fill="#fff" />
+          <ellipse class="pupil" cx="45" cy="40" rx="2" ry="8" fill="#2c3e50"
+            style="transition: transform 0.1s ease-out;" />
+          <ellipse class="pupil" cx="75" cy="40" rx="2" ry="8" fill="#2c3e50"
+            style="transition: transform 0.1s ease-out;" />
+        </g>
+        <g class="eye-shut">
+          <path d="M 37 42 Q 45 35 53 42" fill="none" stroke="#2c3e50" stroke-width="2.5" stroke-linecap="round" />
+          <path d="M 67 42 Q 75 35 83 42" fill="none" stroke="#2c3e50" stroke-width="2.5" stroke-linecap="round" />
+        </g>
+        <path class="mouth-closed" d="M 53 58 Q 60 65 67 58" fill="none" stroke="#2c3e50" stroke-width="2"
+          stroke-linecap="round" />
+        <ellipse class="mouth-open" cx="60" cy="60" rx="6" ry="8" fill="#c0392b" />
+        <polygon points="57,52 63,52 60,56" fill="#e74c3c" />
+        <line x1="30" y1="50" x2="15" y2="45" stroke="#fff" stroke-width="1.5" />
+        <line x1="30" y1="55" x2="12" y2="55" stroke="#fff" stroke-width="1.5" />
+        <line x1="90" y1="50" x2="105" y2="45" stroke="#fff" stroke-width="1.5" />
+        <line x1="90" y1="55" x2="108" y2="55" stroke="#fff" stroke-width="1.5" />
+      </svg>
+
+      <!-- DOG (PUG) -->
+      <svg class="pet-svg pet-dog" viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
+        <rect x="30" y="70" width="60" height="55" rx="25" fill="#d2b48c" />
+        <rect x="35" y="115" width="15" height="20" rx="7" fill="#a68b6a" />
+        <rect x="70" y="115" width="15" height="20" rx="7" fill="#a68b6a" />
+        <path d="M 25 30 Q 5 20 15 50 Q 25 60 25 40" fill="#4a3a31" />
+        <path d="M 95 30 Q 115 20 105 50 Q 95 60 95 40" fill="#4a3a31" />
+        <rect x="20" y="20" width="80" height="65" rx="30" fill="#d2b48c" />
+        <ellipse cx="60" cy="65" rx="22" ry="18" fill="#302520" />
+        <g class="eye-open">
+          <circle cx="38" cy="45" r="10" fill="#fff" />
+          <circle cx="82" cy="45" r="10" fill="#fff" />
+          <circle class="pupil" cx="40" cy="45" r="5" fill="#222" style="transition: transform 0.1s ease-out;" />
+          <circle class="pupil" cx="80" cy="45" r="5" fill="#222" style="transition: transform 0.1s ease-out;" />
+        </g>
+        <g class="eye-shut">
+          <path d="M 28 45 Q 38 52 48 45" fill="none" stroke="#4a3a31" stroke-width="3" stroke-linecap="round" />
+          <path d="M 72 45 Q 82 52 92 45" fill="none" stroke="#4a3a31" stroke-width="3" stroke-linecap="round" />
+        </g>
+        <path class="mouth-closed" d="M 50 72 Q 60 78 70 72" fill="none" stroke="#fff" stroke-width="2"
+          stroke-linecap="round" />
+        <path class="mouth-open" d="M 50 72 Q 60 85 70 72" fill="#c0392b" stroke="none" />
+        <ellipse cx="60" cy="58" rx="6" ry="4" fill="#000" />
+        <path d="M 45 25 Q 60 30 75 25" fill="none" stroke="#b39670" stroke-width="2" />
+        <path d="M 50 32 Q 60 36 70 32" fill="none" stroke="#b39670" stroke-width="2" />
+      </svg>
+
+      <!-- ALIEN -->
+      <svg class="pet-svg pet-alien" viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="60" cy="110" rx="40" ry="15" fill="#7f8c8d" />
+        <ellipse cx="60" cy="105" rx="25" ry="20" fill="#00d2d3" opacity="0.5" />
+        <path d="M 50 30 Q 40 10 30 15" fill="none" stroke="#1dd1a1" stroke-width="3" stroke-linecap="round" />
+        <circle cx="30" cy="15" r="4" fill="#ff9ff3" />
+        <path d="M 70 30 Q 80 10 90 15" fill="none" stroke="#1dd1a1" stroke-width="3" stroke-linecap="round" />
+        <circle cx="90" cy="15" r="4" fill="#ff9ff3" />
+        <path d="M 60 25 C 90 25, 100 65, 60 85 C 20 65, 30 25, 60 25" fill="#1dd1a1" />
+        <g class="eye-open">
+          <g class="pupil" style="transition: transform 0.1s ease-out;">
+            <path d="M 38 45 Q 50 35 55 55 Q 40 60 38 45" fill="#222" />
+            <circle cx="48" cy="45" r="2" fill="#fff" />
+          </g>
+          <g class="pupil" style="transition: transform 0.1s ease-out;">
+            <path d="M 82 45 Q 70 35 65 55 Q 80 60 82 45" fill="#222" />
+            <circle cx="72" cy="45" r="2" fill="#fff" />
+          </g>
+        </g>
+        <g class="eye-shut">
+          <path d="M 35 50 Q 48 60 55 52" fill="none" stroke="#222" stroke-width="2" stroke-linecap="round" />
+          <path d="M 85 50 Q 72 60 65 52" fill="none" stroke="#222" stroke-width="2" stroke-linecap="round" />
+        </g>
+        <path class="mouth-closed" d="M 55 70 Q 60 72 65 70" fill="none" stroke="#222" stroke-width="2"
+          stroke-linecap="round" />
+        <ellipse class="mouth-open" cx="60" cy="72" rx="5" ry="6" fill="#000" />
+      </svg>
+
+      <!-- GHOST -->
+      <svg class="pet-svg pet-ghost" viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
+        <path d="M 30 30 C 30 0, 90 0, 90 30 L 90 100 Q 80 115 75 100 Q 60 115 50 100 Q 38 115 30 100 Z" fill="#f5f6fa"
+          stroke="#dcdde1" stroke-width="2" />
+        <g class="eye-open">
+          <circle class="pupil" cx="45" cy="45" r="7" fill="#2f3640" style="transition: transform 0.1s ease-out;" />
+          <circle class="pupil" cx="75" cy="45" r="7" fill="#2f3640" style="transition: transform 0.1s ease-out;" />
+        </g>
+        <g class="eye-shut">
+          <line x1="38" y1="45" x2="52" y2="45" stroke="#2f3640" stroke-width="3" stroke-linecap="round" />
+          <line x1="68" y1="45" x2="82" y2="45" stroke="#2f3640" stroke-width="3" stroke-linecap="round" />
+        </g>
+        <line x1="35" y1="35" x2="50" y2="40" stroke="#2f3640" stroke-width="2" stroke-linecap="round" />
+        <line x1="85" y1="35" x2="70" y2="40" stroke="#2f3640" stroke-width="2" stroke-linecap="round" />
+        <path class="mouth-closed" d="M 55 60 L 65 60" stroke="#2f3640" stroke-width="2" stroke-linecap="round"
+          fill="none" />
+        <circle class="mouth-open" cx="60" cy="65" r="6" fill="#2f3640" />
+        <path d="M 30 65 Q 15 65 20 80" fill="none" stroke="#f5f6fa" stroke-width="10" stroke-linecap="round" />
+        <path d="M 90 65 Q 105 55 110 40" fill="none" stroke="#f5f6fa" stroke-width="10" stroke-linecap="round" />
+      </svg>
+
+      <!-- OWL -->
+      <svg class="pet-svg pet-owl" viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
+        <rect x="10" y="115" width="100" height="10" rx="5" fill="#5c4033" />
+        <path d="M 45 112v10 M 50 112v10 M 55 112v10 M 65 112v10 M 70 112v10 M 75 112v10" stroke="#f39c12"
+          stroke-width="3" stroke-linecap="round" />
+        <ellipse cx="60" cy="75" rx="35" ry="40" fill="#8e44ad" />
+        <ellipse cx="60" cy="80" rx="25" ry="30" fill="#bdc3c7" />
+        <path d="M 50 70 Q 55 75 60 70 Q 65 75 70 70 M 45 85 Q 50 90 55 85 Q 60 90 65 85 Q 70 90 75 85" fill="none"
+          stroke="#7f8c8d" stroke-width="2" stroke-linecap="round" />
+        <path d="M 25 60 Q 5 80 20 100 Q 30 90 25 60" fill="#732d91" />
+        <path d="M 95 60 Q 115 80 100 100 Q 90 90 95 60" fill="#732d91" />
+        <rect x="30" y="15" width="60" height="45" rx="22" fill="#8e44ad" />
+        <polygon points="30,25 20,5 45,15" fill="#8e44ad" />
+        <polygon points="90,25 100,5 75,15" fill="#8e44ad" />
+        <circle cx="42" cy="35" r="16" fill="#fff" stroke="#f39c12" stroke-width="3" />
+        <circle cx="78" cy="35" r="16" fill="#fff" stroke="#f39c12" stroke-width="3" />
+        <g class="eye-open">
+          <g class="pupil" style="transition: transform 0.1s ease-out;">
+            <circle cx="42" cy="35" r="8" fill="#222" />
+            <circle cx="44" cy="33" r="2" fill="#fff" />
+          </g>
+          <g class="pupil" style="transition: transform 0.1s ease-out;">
+            <circle cx="78" cy="35" r="8" fill="#222" />
+            <circle cx="80" cy="33" r="2" fill="#fff" />
+          </g>
+        </g>
+        <g class="eye-shut">
+          <path d="M 30 35 Q 42 45 54 35" fill="none" stroke="#222" stroke-width="3" stroke-linecap="round" />
+          <path d="M 66 35 Q 78 45 90 35" fill="none" stroke="#222" stroke-width="3" stroke-linecap="round" />
+        </g>
+        <polygon class="mouth-closed" points="55,48 65,48 60,60" fill="#f39c12" />
+        <g class="mouth-open">
+          <polygon points="55,48 65,48 60,56" fill="#f39c12" />
+          <polygon points="57,57 63,57 60,63" fill="#f39c12" />
+          <circle cx="60" cy="54" r="3" fill="#c0392b" />
+        </g>
       </svg>
     </div>
 
@@ -988,6 +1178,21 @@
   <div id="settings-overlay">
     <div id="settings-modal">
       <h2>Settings</h2>
+
+      <!-- Pet Style -->
+      <div class="settings-section">
+        <h3>Pet Style</h3>
+        <div class="select-group">
+          <select class="settings-select" id="pet-select">
+            <option value="default">Default - Devil Robot</option>
+            <option value="cat">Sassy Cat</option>
+            <option value="dog">Grumpy Pug</option>
+            <option value="alien">Floating Alien</option>
+            <option value="ghost">Judgemental Ghost</option>
+            <option value="owl">Wise Owl</option>
+          </select>
+        </div>
+      </div>
 
       <!-- Mood -->
       <div class="settings-section">
@@ -1331,6 +1536,9 @@
     };
 
     function updateMenuState() {
+      // Sync character pet style
+      character.dataset.pet = cfg.pet_style || 'default';
+
       // Monitor toggle
       const monCheck = document.getElementById('ctx-monitor-check');
       if (monCheck) {
@@ -1512,6 +1720,10 @@
       modelCosts = await api.get_model_costs();
       liveVoices = await api.get_live_voices();
       const maskedKeys = await api.get_api_keys();
+
+      // Pet style dropdown
+      const petSelect = document.getElementById('pet-select');
+      if (petSelect) petSelect.value = cfg.pet_style || 'default';
 
       // Mood dropdown
       const moodSelect = document.getElementById('mood-select');
@@ -1837,6 +2049,11 @@
       const api = window.pywebview ? window.pywebview.api : null;
       if (!api) return;
 
+      // Pet Style
+      const petVal = document.getElementById('pet-select') ? document.getElementById('pet-select').value : 'default';
+      await api.set_config('pet_style', petVal);
+      cfg.pet_style = petVal;
+
       // Mood
       const mood = document.getElementById('mood-select').value;
       await api.set_config('mood', mood);
@@ -1906,11 +2123,6 @@
     });
 
     // ========== Eye Tracking ==========
-    const pupilL = document.getElementById('pupil-l');
-    const pupilR = document.getElementById('pupil-r');
-    // Base positions (center of eye socket)
-    const eyeL = { cx: 46, cy: 37 }; // left eye center
-    const eyeR = { cx: 74, cy: 37 }; // right eye center
     const maxOffset = 3; // max pixel offset for pupil movement
 
     document.addEventListener('mousemove', (e) => {
@@ -1925,10 +2137,12 @@
       const ox = Math.round((dx / dist) * maxOffset);
       const oy = Math.round((dy / dist) * Math.min(maxOffset, 2));
 
-      pupilL.setAttribute('x', 44 + ox);
-      pupilL.setAttribute('y', 36 + oy);
-      pupilR.setAttribute('x', 72 + ox);
-      pupilR.setAttribute('y', 36 + oy);
+      // Use CSS transform on all visible elements with .pupil
+      const pupils = character.querySelectorAll('.pet-svg[style*="block"], .pet-svg:not([style*="none"])');
+      const activePupils = character.querySelectorAll('.pupil');
+      activePupils.forEach(pupil => {
+        pupil.style.transform = `translate(${ox}px, ${oy}px)`;
+      });
     });
 
     // ========== Context Menu ==========

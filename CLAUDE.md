@@ -9,19 +9,21 @@ Lotaria is a desktop pet that sits on your screen, periodically captures the scr
 ## Current State
 
 - **UI**: pywebview transparent frameless window — pixel art character with speech bubble, eyes track cursor
-- **Vision**: Multi-provider via LiteLLM — Gemini (default), OpenAI, Anthropic, OpenRouter; local Qwen3-VL option
-- **TTS**: Multi-provider — Gemini TTS (default, via google-genai SDK), OpenAI TTS (via LiteLLM); local Piper option
+- **Vision**: Multi-provider via LiteLLM — Gemini (default), OpenAI, Anthropic, OpenRouter; local Ollama, LM Studio, and Qwen-VL options
+- **TTS**: Multi-provider — Gemini TTS (default), OpenAI TTS (via LiteLLM); local Kokoro (ONNX), Piper, and KittenTTS options
 - **History**: Last 20 roasts saved to `.temp/history.json` for context/callbacks
 - **Storage**: Images + audio saved to `.temp/`, auto-cleanup after 24h
+- **Model Support**: Automated downloader for local weights using HF/ModelScope
 - **Roast Style**: Savage comedy roast - brutal, specific, references previous observations
-- **Settings**: In-app settings modal for API keys, provider/model selection
+- **Settings**: In-app settings modal with dynamic Ollama model detection and voice filtering
 
 ## Tech Stack
 
 - **Desktop**: pywebview with Qt backend (PyQt6 + QtWebEngine) — transparent, frameless, always-on-top
 - **Screen Capture**: `mss` (multi-screen shot)
-- **Vision**: LiteLLM for multi-provider support (Gemini, OpenAI, Anthropic, OpenRouter). Local Qwen3-VL-2B-Instruct available as an option (requires CUDA GPU).
-- **TTS**: Gemini TTS via `google-genai` SDK (default). OpenAI TTS via `litellm.speech()`. Local Piper available as an option.
+- **Vision**: LiteLLM for multi-provider support (Gemini, OpenAI, Anthropic). Local vision via **Ollama**, **LM Studio**, or direct Transformers (Qwen3-VL).
+- **TTS**: Gemini TTS via `google-genai` SDK (default). Local neural TTS via **Kokoro-ONNX** (fast), **Piper**, or **KittenTTS**.
+- **Model Hosting**: Ollama is the preferred local vision host. Direct local vision requires CUDA.
 - **UI**: Single HTML file with inline CSS/JS (no build step)
 - **State**: In-memory with JSON file persistence
 - **Python**: 3.10+ (note: on 3.14+ use Qt backend since pythonnet/EdgeChromium is unavailable)
@@ -56,13 +58,14 @@ pip install piper-tts
 
 ## Supported Providers
 
-| Provider | Vision | TTS | API Key Env Var |
-|----------|--------|-----|-----------------|
-| Google Gemini | gemini-2.0-flash, 2.5-flash, 2.5-pro | gemini-2.5-flash-preview-tts | `GEMINI_API_KEY` |
-| OpenAI | gpt-4o, gpt-4o-mini | tts-1, tts-1-hd | `OPENAI_API_KEY` |
-| Anthropic | claude-sonnet-4 | - | `ANTHROPIC_API_KEY` |
-| OpenRouter | Various (Gemini, Claude, GPT-4o) | - | `OPENROUTER_API_KEY` |
-| Local | Qwen3-VL-2B | Piper | - |
+| Provider | Type | Vision | TTS |
+|----------|------|--------|-----|
+| Google Gemini | API | Yes | Yes (Live & Standard) |
+| OpenAI | API | Yes | Yes |
+| Anthropic | API | Yes | - |
+| Ollama | Local | Yes (auto-detected) | - |
+| LM Studio | Local | Yes | - |
+| Direct (HF) | Local | Qwen3-VL | Kokoro, Piper, KittenTTS |
 
 API keys can be entered in-app via right-click > Settings, or set as environment variables / in `.env`.
 
@@ -83,10 +86,11 @@ bridge.py           # LotariaBridge class (js_api for pywebview)
 monitor.py          # MonitoringThread (background capture+analysis)
 services/
 ├── __init__.py
-├── state.py        # Config, history, constants, PROVIDERS dict, roast prompt, cleanup
+├── state.py        # Config, history, constants, PROVIDERS dict, roast prompt
+├── downloader.py   # ModelDownloader (HF/ModelScope asset fetcher)
 ├── capture.py      # ScreenCaptureService (mss)
-├── vision.py       # Vision service: LiteLLM (multi-provider) + Local (Qwen3-VL)
-└── tts.py          # TTS service: Gemini (google-genai) + LiteLLM (OpenAI etc.) + Local (Piper)
+├── vision.py       # Vision: LiteLLM, Ollama, LM Studio, Qwen-VL
+└── tts.py          # TTS: Gemini, LiteLLM, Kokoro-ONNX, Piper, KittenTTS
 ui/
 └── index.html      # Single-file HTML: character, speech bubble, settings modal, context menu
 ```

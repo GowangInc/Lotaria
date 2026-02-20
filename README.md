@@ -7,18 +7,17 @@ Lotaria sits on your desktop as a transparent, always-on-top pixel art character
 ## Features
 
 - **Screen-aware roasts** — captures your screen and generates context-specific commentary
-- **Multi-provider AI** — supports Gemini, OpenAI, Anthropic, and OpenRouter via LiteLLM
-- **Text-to-speech** — Gemini TTS or OpenAI TTS reads roasts aloud
-- **In-app settings** — enter API keys and configure providers directly in the app
-- **Roast history** — remembers last 20 roasts for callbacks and continuity
-- **Desktop pet UI** — draggable pixel art character with idle animations, eye tracking, speech bubbles, and a right-click context menu
-- **Configurable** — adjust scan interval, toggle speech bubbles and audio, switch providers and models
+- **Multi-provider AI** — supports Gemini, OpenAI, Claude, and OpenRouter.
+- **Local AI Support** — integrate with **Ollama** or **LM Studio** for local vision.
+- **Neural TTS** — high-quality local voices via **Kokoro (ONNX)**, **Piper**, and **KittenTTS**.
+- **In-app settings** — manage API keys and local providers directly.
+- **Auto-Downloader** — automatically fetches required model assets from HuggingFace/ModelScope.
 
 ## Requirements
 
 - Python 3.10+
 - Windows (pywebview with Qt backend)
-- At least one API key (Gemini, OpenAI, Anthropic, or OpenRouter)
+- Ollama (optional, for easiest local vision)
 
 ## Setup
 
@@ -26,11 +25,29 @@ Lotaria sits on your desktop as a transparent, always-on-top pixel art character
 python -m venv .venv
 .venv\Scripts\activate
 
+# Install core and local dependencies
 pip install -r requirements.txt
-
-cp .env.example .env
-# Edit .env and add your API key(s), or enter them in-app via Settings
 ```
+
+## Local Model Configuration
+
+Lotaria is built to be "Local First" if you have the hardware.
+
+### 1. Vision (Eyes)
+The recommended way to run local vision is via **Ollama**:
+1. Install [Ollama](https://ollama.com).
+2. Run `ollama pull moondream` or `ollama pull llama3-v1.5-lava`.
+3. Lotaria will automatically detect your pulled models in the settings.
+
+Alternatively, use **LM Studio** by enabling the local server on `localhost:1234`.
+
+### 2. Text-to-Speech (Voice)
+Lotaria includes high-quality neural TTS that runs directly in Python:
+- **Kokoro-82M (ONNX)**: Near-professional quality, very fast (Default fallback).
+- **Piper**: Extremely lightweight and stable.
+- **KittenTTS**: Highly expressive models designed for local CPUs.
+
+The app will automatically download the necessary voice weights from HuggingFace on first use.
 
 ## Usage
 
@@ -38,64 +55,38 @@ cp .env.example .env
 python app.py
 ```
 
-- **Right-click** the character for the context menu (roast now, toggle monitoring, settings, quit)
-- **Settings** — manage API keys, choose vision/TTS providers and models
-- **Drag** the character to reposition it on screen
-- Monitoring auto-starts and roasts you every 5 minutes by default
+- **Right-click** for the menu (Roast Now, Toggle Monitoring, Settings, Quit).
+- **Settings** — pick your "Eyes" (Vision) and "Voice" (TTS).
+- **Drag** — move the pet anywhere on your screen.
 
 ## Supported Providers
 
-| Provider | Vision | TTS | API Key Env Var |
-|----------|--------|-----|-----------------|
-| Google Gemini | gemini-2.0-flash, 2.5-flash, 2.5-pro | gemini-2.5-flash-preview-tts | `GEMINI_API_KEY` |
-| OpenAI | gpt-4o, gpt-4o-mini | tts-1, tts-1-hd | `OPENAI_API_KEY` |
-| Anthropic | claude-sonnet-4 | - | `ANTHROPIC_API_KEY` |
-| OpenRouter | Various (Gemini, Claude, GPT-4o) | - | `OPENROUTER_API_KEY` |
-| Local | Qwen3-VL-2B | Piper | - |
-
-API keys can be set as environment variables, in `.env`, or entered directly in the Settings modal.
-
-## Optional: Local Models
-
-By default Lotaria uses API providers. If you have an NVIDIA GPU, you can switch to local models via Settings. Local models require additional dependencies:
-
-```bash
-# CUDA PyTorch for local vision (Qwen3-VL-2B-Instruct, ~4GB VRAM)
-pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126
-
-# Local TTS (Piper)
-pip install piper-tts
-```
+| Provider | Type | Vision Support | TTS Support |
+|----------|------|----------------|-------------|
+| **Google Gemini** | API | Yes | Yes (Live & Standard) |
+| **OpenAI** | API | Yes | Yes |
+| **Anthropic** | API | Yes | - |
+| **Ollama** | Local | Yes | - |
+| **LM Studio** | Local | Yes | - |
+| **Direct (HF)** | Local | - | Yes (Kokoro/Piper/Kitten) |
 
 ## Project Structure
 
 ```
-app.py              # Entry point: pywebview window setup and auto-start
-bridge.py           # JS API bridge (pywebview <-> Python)
-monitor.py          # Background monitoring thread
+app.py              # Main app & UI window
+bridge.py           # Python ↔ JS Communication
 services/
-├── state.py        # Config, history, providers, roast prompt, temp file cleanup
-├── capture.py      # Screen capture (mss)
-├── vision.py       # Vision analysis (LiteLLM multi-provider / local Qwen3-VL)
-└── tts.py          # Text-to-speech (Gemini API / LiteLLM / local Piper)
+├── state.py        # Config & Provider Definitions
+├── downloader.py   # Automated Model Downloader
+├── vision.py       # Vision Analysis (Cloud & Local)
+└── tts.py          # Text-to-Speech Engines
 ui/
-└── index.html      # Single-file UI: character, speech bubble, settings modal, context menu
+└── index.html      # UI, Animations & Styles
 ```
 
-## Configuration
+## Hardware Note
 
-Settings are adjustable via the right-click context menu and the Settings modal:
-
-| Setting | Default | Description |
-|---------|---------|-------------|
-| Vision provider | Gemini | AI provider for screen analysis |
-| Vision model | gemini-2.0-flash | Specific model for vision |
-| TTS provider | Gemini | AI provider for text-to-speech |
-| TTS model | gemini-2.5-flash-preview-tts | Specific model for TTS |
-| TTS voice | Kore | Voice for TTS output |
-| Scan interval | 300s | Time between automatic roasts |
-| Speech bubble | On | Show/hide the speech bubble |
-| Audio | On | Enable/disable TTS playback |
+Local vision models (like Qwen-VL or Llama-Vision) typically require a GPU with **4GB+ VRAM**. Local TTS (Kokoro/Piper) runs excellently on **CPU**.
 
 ## Notes
 

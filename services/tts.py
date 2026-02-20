@@ -8,7 +8,8 @@ from pathlib import Path
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from .state import config, TEMP_DIR, LOCAL_TTS_MODEL
+from .state import config, TEMP_DIR, LOCAL_TTS_MODEL, MODELS_DIR, PIPER_VOICES
+from .downloader import ModelDownloader
 
 import litellm
 litellm.set_verbose = False
@@ -25,10 +26,11 @@ class BaseTTSService(ABC):
 
 
 class LocalTTSService(BaseTTSService):
-    def __init__(self):
+    def __init__(self, voice: str = "en_US-lessac-medium"):
         self.model = LOCAL_TTS_MODEL
-        self._voice_name = "en_US-lessac-medium"
-
+        self._voice_name = voice
+        self._voice_path = None
+        
         try:
             import piper
             self._piper_available = True
@@ -36,6 +38,56 @@ class LocalTTSService(BaseTTSService):
         except ImportError:
             self._piper_available = False
             print("[Lotaria] Piper Python package not found, will use subprocess")
+
+    def _ensure_voice(self):
+        if self._voice_path and self._voice_path.exists():
+            return self._voice_path
+
+        # Handle the default voice or custom path
+        if self._voice_name in PIPER_VOICES or self._voice_name == "en_US-lessac-medium":
+            from huggingface_hub import hf_hub_download
+            repo = "rhasspy/piper-voices"
+            
+            # Map friendly names to paths if needed, though we use full identifiers
+            # en_US-lessac-medium -> en/en_US/lessac/medium/en_US-lessac-medium.onnx
+            parts = self._voice_name.split("-")
+            lang_short = parts[0].split("_")[0] # en
+            lang_full = parts[0] # en_US
+            name = parts[1] # lessac
+            quality = parts[2] # medium
+            
+            filename = f"{lang_short}/{lang_full}/{name}/{quality}/{self._voice_name}.onnx"
+            
+            print(f"[Lotaria] Downloading/Ensuring Piper voice: {self._voice_name}")
+            
+            # Download to our app's models directory
+            target_dir = MODELS_DIR / "piper"
+            target_dir.mkdir(parents=True, exist_ok=True)
+            
+            onnx_path = hf_hub_download(
+                repo_id=repo,
+                filename=filename,
+                local_dir=target_dir,
+                local_dir_use_symlinks=False
+            )
+            # Also need the config file or Piper will crash
+            hf_hub_download(
+                repo_id=repo,
+                filename=filename + ".json",
+                local_dir=target_dir,
+                local_dir_use_symlinks=False
+            )
+            
+            self._voice_path = Path(onnx_path)
+            return self._voice_path
+        
+        # If it's already a path, use it
+        p = Path(self._voice_name)
+        if p.exists():
+            self._voice_path = p
+            return p
+            
+        raise FileNotFoundError(f"Piper voice model not found: {self._voice_name}")
 
     def synthesize(self, text: str) -> tuple[bytes, str]:
         timestamp = int(time.time())
@@ -47,8 +99,8 @@ class LocalTTSService(BaseTTSService):
 
     def _synthesize_python(self, text: str, output_file: Path) -> tuple[bytes, str]:
         from piper import PiperVoice
-
-        voice = PiperVoice.load(self._voice_name)
+        voice_path = self._ensure_voice()
+        voice = PiperVoice.load(str(voice_path))
         wav_buffer = BytesIO()
         with wave.open(wav_buffer, "wb") as wav_file:
             voice.synthesize(text, wav_file)
@@ -59,8 +111,9 @@ class LocalTTSService(BaseTTSService):
 
     def _synthesize_subprocess(self, text: str, output_file: Path) -> tuple[bytes, str]:
         try:
+            voice_path = self._ensure_voice()
             result = subprocess.run(
-                ["piper", "--model", self._voice_name, "--output_file", str(output_file)],
+                ["piper", "--model", str(voice_path), "--output_file", str(output_file)],
                 input=text.encode(), capture_output=True, timeout=30,
             )
             if result.returncode != 0:
@@ -107,6 +160,91 @@ class LiteLLMTTSService(BaseTTSService):
 
         mime_type = "audio/mpeg" if ext == "mp3" else "audio/wav"
         return audio_bytes, mime_type
+
+
+class KokoroTTSService(BaseTTSService):
+    """Uses the Kokoro-82M model via kokoro-onnx.
+    No PyTorch/Torch dependency = No Windows DLL errors.
+    """
+    def __init__(self, voice: str = "af_heart"):
+        self.model = "kokoro"
+        self.voice = voice
+        self._kokoro = None
+
+    def _ensure_kokoro(self):
+        if self._kokoro is None:
+            from kokoro_onnx import Kokoro
+            from huggingface_hub import hf_hub_download
+            
+            # Ensure model and voices are downloaded
+            target_dir = MODELS_DIR / "kokoro"
+            target_dir.mkdir(parents=True, exist_ok=True)
+            
+            repo = "hexgrad/Kokoro-82M"
+            onnx_path = hf_hub_download(repo_id=repo, filename="kokoro-v1.0.onnx", local_dir=target_dir)
+            voices_path = hf_hub_download(repo_id=repo, filename="voices-v1.0.bin", local_dir=target_dir)
+            
+            self._kokoro = Kokoro(str(onnx_path), str(voices_path))
+
+    def synthesize(self, text: str) -> tuple[bytes, str]:
+        self._ensure_kokoro()
+        import soundfile as sf
+        
+        samples, sample_rate = self._kokoro.create(text, voice=self.voice, speed=1, lang="en-us")
+        
+        wav_buffer = BytesIO()
+        sf.write(wav_buffer, samples, sample_rate, format='WAV')
+        audio_bytes = wav_buffer.getvalue()
+        
+        timestamp = int(time.time())
+        audio_file = TEMP_DIR / f"audio_{timestamp}.wav"
+        audio_file.write_bytes(audio_bytes)
+        
+        return audio_bytes, "audio/wav"
+
+
+class KittenTTSService(BaseTTSService):
+    """Uses the KittenTTS model (80M variant).
+    Optimized for CPU and extremely expressive.
+    """
+    def __init__(self, voice: str = "female_1"):
+        self.model = "kittentts-80m"
+        self.voice = voice
+        self._model = None
+
+    def _ensure_model(self):
+        if self._model is None:
+            try:
+                # KittenTTS 80M currently requires torch
+                from kittentts import KittenTTS
+                repo_id = config.get("custom_settings", {}).get("local_tts_id", "KittenML/KittenTTS-80M")
+                model_path = ModelDownloader().ensure_model(repo_id)
+                self._model = KittenTTS.from_pretrained(str(model_path))
+            except ImportError:
+                raise ImportError("KittenTTS not installed. pip install git+https://github.com/KittenML/KittenTTS")
+            except Exception as e:
+                if "c10.dll" in str(e) or "1114" in str(e):
+                    raise RuntimeError("KittenTTS failed due to a PyTorch DLL error. This is a common Windows issue. "
+                                     "Please use 'Piper' or 'Kokoro' instead, as they now use stable ONNX engines.")
+                raise e
+
+    def synthesize(self, text: str) -> tuple[bytes, str]:
+        self._ensure_model()
+        import soundfile as sf
+        
+        # Mapping voice names to KittenTTS internal IDs if needed
+        # For now, we assume the user picks what KittenTTS supports (female_1, male_1, etc.)
+        audio = self._model.predict(text, voice=self.voice)
+        
+        wav_buffer = BytesIO()
+        sf.write(wav_buffer, audio, 24000, format='WAV')
+        audio_bytes = wav_buffer.getvalue()
+        
+        timestamp = int(time.time())
+        audio_file = TEMP_DIR / f"audio_{timestamp}.wav"
+        audio_file.write_bytes(audio_bytes)
+        
+        return audio_bytes, "audio/wav"
 
 
 class GeminiTTSService(BaseTTSService):
@@ -273,7 +411,22 @@ def get_tts_service() -> BaseTTSService:
 
     if _tts_service is None:
         if provider == "local":
-            _tts_service = LocalTTSService()
+            try:
+                if "kokoro" in model:
+                    _tts_service = KokoroTTSService(voice=voice or "af_heart")
+                    # Test for DLL/Import issues immediately
+                    from kokoro_onnx import Kokoro
+                elif "kittentts" in model:
+                    _tts_service = KittenTTSService(voice=voice or "female_1")
+                    from kittentts import KittenTTS
+                else:
+                    _tts_service = LocalTTSService(voice=voice or "en_US-lessac-medium") # Piper
+            except Exception as e:
+                # Catching all because DLL load errors are often generic Exceptions or ImportErrors
+                print(f"[Lotaria] Local model {model} failed to load: {e}")
+                print(f"[Lotaria] Falling back to Piper (Standalone Engine)")
+                _tts_service = LocalTTSService(voice="en_US-lessac-medium")
+                model = "local/piper-fallback"
         elif provider == "gemini" and "live" in model:
             api_key = config.get("api_keys", {}).get("gemini")
             _tts_service = GeminiLiveTTSService(voice=voice or "Kore", api_key=api_key)

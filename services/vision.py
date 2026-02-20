@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Optional
 
 from .state import config, LOCAL_VISION_MODEL
+from .downloader import ModelDownloader
 
 import litellm
 litellm.set_verbose = False
@@ -19,12 +20,13 @@ class BaseVisionService(ABC):
 
 
 class LocalVisionService(BaseVisionService):
-    def __init__(self):
-        self.model = LOCAL_VISION_MODEL
+    def __init__(self, model_name: str):
+        self.model = model_name
         self._model_loaded = False
         self._processor = None
         self._model = None
         self._device = None
+        self._is_moondream = "moondream" in model_name.lower()
 
     def _ensure_model_loaded(self):
         if self._model_loaded:
@@ -38,37 +40,55 @@ class LocalVisionService(BaseVisionService):
             error_msg = str(e)
             if "DLL" in error_msg or "c10.dll" in error_msg:
                 raise RuntimeError(
-                    "PyTorch failed to load. This usually means:\n"
-                    "1. Missing Visual C++ Redistributable (install from microsoft.com)\n"
-                    "2. CUDA version mismatch\n"
-                    "3. Corrupted PyTorch installation\n\n"
-                    "Please use API mode instead (Gemini, OpenAI), or reinstall PyTorch:\n"
-                    "pip install torch torchvision --force-reinstall --index-url https://download.pytorch.org/whl/cpu"
+                    "Local vision model failed to load. This usually means PyTorch is missing DLLs.\n\n"
+                    "RECOMMENDATION: Use the 'Ollama (Easiest Local)' provider in Settings instead. "
+                    "It is much more compatible with different hardware and easier to set up."
                 ) from e
             raise
 
+        # Model mapping for better compatibility
+        downloader = ModelDownloader()
+        huggingface_id = self.model
+        
+        # Handle "Custom" or specific aliases
+        if "moondream2" in self.model:
+            huggingface_id = "vikhyatk/moondream2"
+            self._is_moondream = True
+        elif "qwen3-vl" in self.model:
+            huggingface_id = "Qwen/Qwen2.5-VL-3B-Instruct"
+        elif "custom" in self.model:
+            # Look for custom model ID in config
+            huggingface_id = config.get("custom_settings", {}).get("local_vision_id")
+            if not huggingface_id:
+                raise ValueError("Custom model selected but no 'local_vision_id' set in settings.")
+            self._is_moondream = "moondream" in huggingface_id.lower()
+
+        # Download if needed
+        model_path = downloader.ensure_model(huggingface_id)
+        print(f"[Lotaria] Using model files from: {model_path}")
+
         try:
-            from modelscope import AutoProcessor, AutoModelForVision2Seq
-            print(f"[Lotaria] Using ModelScope for model download: {self.model}")
+            from transformers import AutoProcessor, AutoModelForCausalLM, AutoModelForVision2Seq
+            
+            self._processor = AutoProcessor.from_pretrained(huggingface_id, trust_remote_code=True)
+            
+            model_kwargs = {
+                "trust_remote_code": True,
+                "device_map": "auto",
+            }
+            
+            # Use float16/bfloat16 for efficiency on GPU
+            if torch.cuda.is_available():
+                model_kwargs["torch_dtype"] = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
 
-            self._processor = AutoProcessor.from_pretrained(
-                self.model, trust_remote_code=True,
-            )
-            self._model = AutoModelForVision2Seq.from_pretrained(
-                self.model, trust_remote_code=True,
-                torch_dtype=torch.bfloat16, device_map="auto",
-            )
-        except ImportError:
-            print("[Lotaria] ModelScope not available, falling back to HuggingFace")
-            from transformers import AutoProcessor, Qwen2_5_VLForConditionalGeneration
-
-            self._processor = AutoProcessor.from_pretrained(
-                self.model, trust_remote_code=True,
-            )
-            self._model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
-                self.model, trust_remote_code=True,
-                torch_dtype=torch.bfloat16, device_map="auto",
-            )
+            if self._is_moondream:
+                self._model = AutoModelForCausalLM.from_pretrained(huggingface_id, **model_kwargs)
+            else:
+                self._model = AutoModelForVision2Seq.from_pretrained(huggingface_id, **model_kwargs)
+                
+        except Exception as e:
+            print(f"[Lotaria] Error loading model {huggingface_id}: {e}")
+            raise
 
         self._device = next(self._model.parameters()).device
         self._model_loaded = True
@@ -80,6 +100,10 @@ class LocalVisionService(BaseVisionService):
         import torch
 
         img = Image.open(BytesIO(image_bytes)).convert("RGB")
+
+        if self._is_moondream:
+            # Moondream specific inference
+            return self._model.answer_question(self._processor(img), prompt, self._processor)
 
         messages = [
             {
@@ -138,6 +162,82 @@ class LiteLLMVisionService(BaseVisionService):
         return response.choices[0].message.content
 
 
+class OllamaVisionService(BaseVisionService):
+    """Uses Ollama's local API. Most straightforward setup."""
+    def __init__(self, model: str):
+        # ollama/moondream -> moondream
+        self.model = model.split("/")[-1]
+        if self.model == "custom":
+            self.model = config.get("custom_settings", {}).get("ollama_vision_id", "moondream")
+
+    def analyze(self, image_bytes: bytes, prompt: str) -> str:
+        import requests
+        import base64
+        
+        b64 = base64.b64encode(image_bytes).decode()
+        url = config.get("custom_settings", {}).get("ollama_url", "http://localhost:11434/api/generate")
+        
+        payload = {
+            "model": self.model,
+            "prompt": prompt,
+            "stream": False,
+            "images": [b64]
+        }
+        
+        try:
+            # First load can take a while, 180s is safer
+            response = requests.post(url, json=payload, timeout=180)
+            response.raise_for_status()
+            return response.json().get("response", "").strip()
+        except requests.exceptions.Timeout:
+            return f"[Ollama Timeout] The model '{self.model}' is taking too long to load/respond. Try a smaller/quantized model or wait for it to initialize in Ollama."
+        except Exception as e:
+            return f"[Ollama Error] Ensure Ollama is running and '{self.model}' is pulled. ({e})"
+
+
+class LMStudioVisionService(BaseVisionService):
+    """Uses LM Studio's OpenAI-compatible API."""
+    def __init__(self, model: str):
+        # lmstudio/custom -> custom
+        self.model = model.split("/")[-1]
+        if self.model == "custom":
+            self.model = config.get("custom_settings", {}).get("lmstudio_vision_id", "model-identifier")
+
+    def analyze(self, image_bytes: bytes, prompt: str) -> str:
+        import requests
+        import base64
+        
+        b64 = base64.b64encode(image_bytes).decode()
+        url = config.get("custom_settings", {}).get("lmstudio_url", "http://localhost:1234/v1/chat/completions")
+        
+        payload = {
+            "model": self.model,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:image/jpeg;base64,{b64}"}
+                        }
+                    ]
+                }
+            ],
+            "max_tokens": 300
+        }
+        
+        try:
+            # First load can take a while, 180s is safer
+            response = requests.post(url, json=payload, timeout=180)
+            response.raise_for_status()
+            return response.json()["choices"][0]["message"]["content"].strip()
+        except requests.exceptions.Timeout:
+            return f"[LM Studio Timeout] The model is taking too long to load. Ensure you have 'GPU Offloading' enabled in LM Studio for better speed."
+        except Exception as e:
+            return f"[LM Studio Error] Ensure LM Studio server is running on {url}. ({e})"
+
+
 # ---------------------------------------------------------------------------
 # Factory (lazy singleton, recreated when model/provider changes)
 # ---------------------------------------------------------------------------
@@ -158,7 +258,11 @@ def get_vision_service() -> BaseVisionService:
 
     if _vision_service is None:
         if provider == "local":
-            _vision_service = LocalVisionService()
+            _vision_service = LocalVisionService(model_name=model)
+        elif provider == "ollama":
+            _vision_service = OllamaVisionService(model=model)
+        elif provider == "lmstudio":
+            _vision_service = LMStudioVisionService(model=model)
         else:
             api_key = config.get("api_keys", {}).get(provider)
             _vision_service = LiteLLMVisionService(model=model, api_key=api_key)

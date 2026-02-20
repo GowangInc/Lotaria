@@ -9,7 +9,7 @@ from services.state import (
     detect_gpu_capabilities, get_default_mode_recommendation,
     mark_first_run_complete, check_rate_limit, record_api_request,
     clear_history, MOOD_PROMPTS, truncate_response, MODEL_COSTS,
-    GEMINI_LIVE_VOICES,
+    GEMINI_LIVE_VOICES, fetch_ollama_models,
 )
 from services.capture import ScreenCaptureService
 from services.vision import get_vision_service
@@ -176,8 +176,20 @@ class LotariaBridge:
         return False
 
     def get_providers(self):
-        """Return the PROVIDERS dict so JS can build the settings UI."""
-        return PROVIDERS
+        """Return the PROVIDERS dict with dynamically fetched local models."""
+        p = {k: dict(v) for k, v in PROVIDERS.items()}
+        
+        # Inject Ollama models
+        ollama_models = fetch_ollama_models()
+        if ollama_models:
+            # Add dynamic models, keep 'custom' at the end
+            current_vision = [m for m in p["ollama"]["vision_models"] if m != "ollama/custom"]
+            p["ollama"]["vision_models"] = ollama_models + current_vision + ["ollama/custom"]
+            # Register costs for these dynamic models as well
+            for m in ollama_models:
+                MODEL_COSTS[m] = "$"
+
+        return p
 
     def get_api_keys(self):
         """Return which providers have keys set (masked)."""

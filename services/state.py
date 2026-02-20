@@ -62,22 +62,29 @@ MODEL_COSTS = {
     "openai/tts-1": "$$",
     "openai/tts-1-hd": "$$$",
     # Local
+    "local/moondream2": "$",
     "local/qwen3-vl": "$",
     "local/piper": "$",
+    "local/kokoro": "$",
+    "local/kittentts-80m": "$",
+    "local/custom": "$",
+    # Ollama
+    "ollama/custom": "$",
+    # LM Studio
+    "lmstudio/custom": "$",
 }
 
 # Gemini TTS voices: 8 voices for Live API, all 30 for standard TTS
-GEMINI_LIVE_VOICES = [
-    "Aoede", "Charon", "Fenrir", "Kore", "Leda", "Orus", "Puck", "Zephyr",
-]
+GEMINI_LIVE_VOICES = ["Puck", "Charon", "Kore", "Fenrir", "Aoede"]
 GEMINI_TTS_VOICES = [
-    "Achernar", "Achird", "Algenib", "Algieba", "Alnilam",
-    "Aoede", "Autonoe", "Callirrhoe", "Charon", "Despina",
-    "Enceladus", "Erinome", "Fenrir", "Gacrux", "Iapetus",
-    "Kore", "Laomedeia", "Leda", "Orus", "Puck",
-    "Pulcherrima", "Rasalgethi", "Sadachbia", "Sadaltager", "Schedar",
-    "Sulafat", "Umbriel", "Vindemiatrix", "Zephyr", "Zubenelgenubi",
+    "Puck", "Charon", "Kore", "Fenrir", "Aoede", "Alloy", "Echo", "Fable", "Onyx", "Nova", "Shimmer"
 ]
+
+# Local TTS Voices
+KOKORO_VOICES = ["af_heart", "af_bella", "af_nicole", "af_sarah", "af_sky", "am_adam", "am_michael", "bf_emma", "bf_isabella", "bm_george", "bm_lewis"]
+PIPER_VOICES = ["en_US-lessac-medium", "en_US-amy-medium", "en_US-joe-medium", "en_GB-southern_english_female-low"]
+KITTEN_VOICES = ["female_1", "female_2", "female_3", "female_4", "male_1", "male_2", "male_3", "male_4"]
+LOCAL_TTS_VOICES = KOKORO_VOICES + PIPER_VOICES + KITTEN_VOICES
 
 PROVIDERS = {
     "gemini": {
@@ -169,16 +176,59 @@ PROVIDERS = {
         "requires_tts_provider": True,
     },
     "local": {
-        "name": "Local (Experimental)",
+        "name": "Direct (HF / ModelScope)",
         "env_var": None,
         "docs_url": None,
-        "vision_models": ["local/qwen3-vl"],
-        "tts_models": ["local/piper"],
-        "tts_voices": [],
-        "cost_note": "FREE (requires GPU)",
+        "vision_models": [],
+        "tts_models": [
+            "local/piper",
+            "local/kokoro",
+            "local/kittentts-80m",
+            "local/custom",
+        ],
+        "tts_voices": LOCAL_TTS_VOICES,
+        "cost_note": "Neural TTS (Self-contained)",
         "experimental": True,
     },
+    "ollama": {
+        "name": "Ollama (Local)",
+        "env_var": None,
+        "docs_url": "https://ollama.com",
+        "vision_models": [
+            "ollama/custom",
+        ],
+        "tts_models": [],
+        "tts_voices": [],
+        "cost_note": "FREE (Requires Ollama app)",
+    },
+    "lmstudio": {
+        "name": "LM Studio (Local)",
+        "env_var": None,
+        "docs_url": "https://lmstudio.ai",
+        "vision_models": [
+            "lmstudio/custom",
+        ],
+        "tts_models": [],
+        "tts_voices": [],
+        "cost_note": "FREE (Requires LM Studio)",
+    },
 }
+
+def fetch_ollama_models() -> list[str]:
+    """Helper to fetch currently pulled models from a running Ollama instance."""
+    import requests
+    url = config.get("custom_settings", {}).get("ollama_url", "http://localhost:11434/api/tags")
+    # If users customized url to /api/generate, change it back to /api/tags for model listing
+    if "/generate" in url:
+        url = url.replace("/generate", "/tags")
+    
+    try:
+        resp = requests.get(url, timeout=1)
+        resp.raise_for_status()
+        models_data = resp.json().get("models", [])
+        return [f"ollama/{m['name']}" for m in models_data if "name" in m]
+    except Exception:
+        return []
 
 # ---------------------------------------------------------------------------
 # Config & history dicts (mutable singletons, imported by other modules)

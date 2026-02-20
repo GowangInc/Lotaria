@@ -1,6 +1,42 @@
-# Lotaria Local Models Guide
+## Local Model Strategies
 
-Complete guide to using local vision and TTS models with Lotaria.
+We now support three ways to run models locally:
+
+### 1. Ollama (Easiest)
+**Ollama** is the most straightforward way to run Vision models. It manages the server, quantization, and model library for you.
+*   **Setup**: Install [Ollama](https://ollama.com).
+*   **Usage**: Select `Ollama (Easiest Local)` as your provider. 
+*   **Models**: Pull models via CLI: `ollama pull moondream` or `ollama pull llama3-lava`.
+*   **Bring Your Own**: Choose `ollama/custom` and specify the model name in Settings.
+
+### 2. Direct Local (HuggingFace / ModelScope)
+Lotaria can download and run models directly using `transformers` and `torch`.
+*   **Primary Source**: HuggingFace.
+*   **Fallback**: ModelScope (automatically used for users in regions where HF is slow/blocked).
+*   **Bring Your Own**: Choose `local/custom` and provide a HuggingFace Repo ID (e.g., `vikhyatk/moondream2`) in Settings. Lotaria will handle the download and initialization.
+
+### 3. LM Studio / OpenAI-Compatible
+If you use LM Studio or another local server that provides an OpenAI-compatible API:
+*   **Setup**: Start your local server.
+*   **Usage**: Select `OpenAI` as your provider and set your local URL (e.g., `http://localhost:1234/v1`) in the settings.
+
+---
+
+## Hardware Stability Recommendations
+
+For the most stable, high-quality local experience, use these combinations:
+
+1.  **"High Performance" Local Setup** (Best neural quality):
+    *   **Vision**: `local/qwen3-vl` (3B or 7B depending on VRAM)
+    *   **TTS**: `local/kokoro` (82M parameters, incredibly natural and fast)
+
+2.  **"Efficient" Local Setup** (Fast and low resource):
+    *   **Vision**: `local/moondream2`
+    *   **TTS**: `local/piper` (Rock solid, fastest generation time)
+
+3.  **"Expressive" Experimental Setup**:
+    *   **Vision**: `local/moondream2`
+    *   **TTS**: `local/kittentts-80m` (Highly expressive, small footprint)
 
 ---
 

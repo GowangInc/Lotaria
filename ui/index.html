@@ -1592,8 +1592,8 @@
     }
 
     function getProvidersWithKeys() {
-      // Providers that have a key set (check cfg.api_keys or env-loaded keys)
-      const withKeys = new Set(['local']); // local always available
+      // Providers that have a key set or are keyless (local)
+      const withKeys = new Set(['local', 'ollama', 'lmstudio']);
       for (const [provKey, prov] of Object.entries(providers)) {
         if (!prov.env_var) continue;
         const statusEl = document.getElementById('key-status-' + provKey);
@@ -1706,6 +1706,7 @@
 
       function updateTtsVoices() {
         const selProv = provSelect.value;
+        const selModel = modelSelect.value;
         const prov = providers[selProv];
         voiceSelect.innerHTML = '';
         if (!prov || !prov.tts_voices || prov.tts_voices.length === 0) {
@@ -1713,7 +1714,19 @@
           return;
         }
         voiceGroup.style.display = '';
-        for (const v of prov.tts_voices) {
+
+        let voices = prov.tts_voices;
+        if (selProv === 'local') {
+          if (selModel.includes('kokoro')) {
+            voices = voices.filter(v => v.includes('af_') || v.includes('am_') || v.includes('bf_') || v.includes('bm_'));
+          } else if (selModel.includes('piper')) {
+            voices = voices.filter(v => v.includes('-'));
+          } else if (selModel.includes('kittentts')) {
+            voices = voices.filter(v => v.includes('_') && !v.includes('af_') && !v.includes('am_'));
+          }
+        }
+
+        for (const v of voices) {
           const opt = document.createElement('option');
           opt.value = v;
           opt.textContent = v;

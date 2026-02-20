@@ -9,13 +9,20 @@ python-dotenv>=1.0.0
 Pillow>=10.0.0
 keyring>=25.0.0
 
-# Local vision model (Qwen3-VL-2B)
+# Local vision model (Qwen/Moondream)
 torch>=2.0.0
 transformers>=4.40.0
 accelerate>=0.30.0
 modelscope>=1.10.0
 qwen-vl-utils>=0.0.8
+timm>=1.0.0
+einops>=0.7.0
 
-# Local TTS (Piper)
+# Local TTS (Piper / Kokoro / KittenTTS)
 piper-tts>=1.2.0
+kokoro-onnx>=0.3.0
+onnxruntime>=1.16.0
+soundfile>=0.12.0
 pathvalidate>=3.0.0
+# KittenTTS (requires git)
+kittentts @ git+https://github.com/KittenML/KittenTTS

@@ -1,132 +1,165 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance when working with the Lotaria Tauri codebase.
 
 ## Project Overview
 
 Lotaria is a desktop pet that sits on your screen, periodically captures the screen, uses vision AI to analyze user activity, and roasts the user with a speech bubble + TTS audio.
 
+**Architecture: Tauri 2.0 + Rust + TypeScript**
+
 ## Current State
 
-- **UI**: pywebview transparent frameless window — pixel art character with speech bubble, eyes track cursor
-- **Vision**: Multi-provider via LiteLLM — Gemini (default), OpenAI, Anthropic, OpenRouter; local Ollama, LM Studio, and Qwen-VL options
-- **TTS**: Multi-provider — Gemini TTS (default), OpenAI TTS (via LiteLLM); local Kokoro (ONNX), Piper, and KittenTTS options
-- **History**: Last 20 roasts saved to `.temp/history.json` for context/callbacks
-- **Storage**: Images + audio saved to `.temp/`, auto-cleanup after 24h
-- **Model Support**: Automated downloader for local weights using HF/ModelScope
-- **Roast Style**: Savage comedy roast - brutal, specific, references previous observations
-- **Settings**: In-app settings modal with dynamic Ollama model detection and voice filtering
+- **UI**: Tauri frameless transparent window with Vite-built frontend
+- **Vision**: API-only via HTTP clients — Gemini (default), OpenAI, Anthropic, Groq, DeepSeek
+- **TTS**: API-only — Gemini TTS (default with unlimited Live API), OpenAI TTS
+- **History**: Last 20 roasts saved to config dir for context/callbacks
+- **Storage**: Images + audio saved to cache dir, auto-cleanup after 24h
+- **Build**: Vite builds frontend to `dist/`, Tauri bundles into native app
 
 ## Tech Stack
 
-- **Desktop**: pywebview with Qt backend (PyQt6 + QtWebEngine) — transparent, frameless, always-on-top
-- **Screen Capture**: `mss` (multi-screen shot)
-- **Vision**: LiteLLM for multi-provider support (Gemini, OpenAI, Anthropic). Local vision via **Ollama**, **LM Studio**, or direct Transformers (Qwen3-VL).
-- **TTS**: Gemini TTS via `google-genai` SDK (default). Local neural TTS via **Kokoro-ONNX** (fast), **Piper**, or **KittenTTS**.
-- **Model Hosting**: Ollama is the preferred local vision host. Direct local vision requires CUDA.
-- **UI**: Single HTML file with inline CSS/JS (no build step)
-- **State**: In-memory with JSON file persistence
-- **Python**: 3.10+ (note: on 3.14+ use Qt backend since pythonnet/EdgeChromium is unavailable)
+- **Desktop**: Tauri 2.0 — transparent, frameless, always-on-top
+- **Frontend Build**: Vite + TypeScript
+- **Screen Capture**: `xcap` crate (cross-platform)
+- **Vision**: Direct HTTP APIs (Gemini, OpenAI-compatible)
+- **TTS**: Gemini TTS via `reqwest`, OpenAI TTS
+- **Audio**: Playback via `rodio`
+- **UI**: Single HTML file with TypeScript (no framework)
+- **State**: JSON file persistence via `dirs` crate
 
 ## IMPORTANT: Do NOT Use
 
-- **Browser SpeechSynthesis** - Sounds horrible, do not use for TTS
+- **Browser SpeechSynthesis** - Sounds horrible
 - **edge-tts** - Not wanted by user
-- **FastAPI / React** - Removed; app is now a pywebview desktop pet
-- **CPU-only torch** - If using local vision model, it must run on GPU (CUDA). Do not use `device_map='cpu'`
+- **Local models** - API-only for simplicity
+- **Python** - Fully migrated to Rust
 
 ## Running
 
 ```bash
-python -m venv .venv
-.venv\Scripts\activate        # Windows
-pip install -r requirements.txt
-cp .env.example .env          # Add your API keys (or enter them in-app via Settings)
-python app.py
-```
+# Install dependencies
+npm install
 
-### Optional: Local models
+# Development (Vite dev server + Tauri)
+npm run dev
 
-Local vision/TTS models can be enabled via Settings. They are **not required** for default operation. If you want to use them:
-
-```bash
-# CUDA PyTorch (required for local vision model)
-pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126
-# Local TTS
-pip install piper-tts
+# Production build
+npm run build
+cargo tauri build
 ```
 
 ## Supported Providers
 
-| Provider | Type | Vision | TTS |
-|----------|------|--------|-----|
-| Google Gemini | API | Yes | Yes (Live & Standard) |
-| OpenAI | API | Yes | Yes |
-| Anthropic | API | Yes | - |
-| Ollama | Local | Yes (auto-detected) | - |
-| LM Studio | Local | Yes | - |
-| Direct (HF) | Local | Qwen3-VL | Kokoro, Piper, KittenTTS |
+| Provider | Vision | TTS | Notes |
+|----------|--------|-----|-------|
+| **Google Gemini** | ✅ | ✅ | **Recommended** - Free tier, unlimited Live TTS |
+| **OpenAI** | ✅ | ✅ | gpt-4o, tts-1 |
+| **Anthropic** | ✅ | ❌ | Claude models |
+| **Groq** | ✅ | ❌ | Fast inference |
+| **DeepSeek** | ✅ | ❌ | Cheapest |
 
-API keys can be entered in-app via right-click > Settings, or set as environment variables / in `.env`.
+API keys entered in-app are persisted to config and override environment variables.
 
-## Known Issues / Setup Notes
+## Project Structure
 
-- **Python 3.14+**: `pythonnet` has no wheels, so pywebview's EdgeChromium backend is unavailable. The app forces `gui="qt"` in `app.py` and uses PyQt6 + QtWebEngine instead.
-- **Local vision model** (optional): Requires CUDA GPU, ~4GB VRAM, and PyTorch installed from the CUDA index. The correct HuggingFace model ID is `Qwen/Qwen3-VL-2B-Instruct`.
-- **google-genai**: Required for Gemini TTS (which uses the generate_content API with audio modality, not the standard OpenAI-compatible speech endpoint).
-- **litellm**: Used for multi-provider vision and OpenAI-compatible TTS.
+```
+src-tauri/              # Rust backend
+├── src/
+│   ├── main.rs         # Entry point, window creation
+│   ├── lib.rs          # Module exports
+│   ├── state.rs        # Config, history, PROVIDERS, prompts
+│   ├── capture.rs      # ScreenCapture (xcap)
+│   ├── vision.rs       # Vision services (Gemini, OpenAI)
+│   ├── tts.rs          # TTS services + AudioPlayer
+│   └── commands.rs     # Tauri commands
+├── capabilities/       # Tauri 2.0 capabilities
+├── icons/              # App icons
+├── Cargo.toml
+└── tauri.conf.json
+
+src/                    # Frontend
+├── index.html          # UI markup
+└── main.ts             # TypeScript logic
+
+dist/                   # Built frontend (gitignored)
+```
 
 ## Architecture
 
-### File Structure
+### Rust Backend
 
-```
-app.py              # Entry point: pywebview window, wiring, auto-start
-bridge.py           # LotariaBridge class (js_api for pywebview)
-monitor.py          # MonitoringThread (background capture+analysis)
-services/
-├── __init__.py
-├── state.py        # Config, history, constants, PROVIDERS dict, roast prompt
-├── downloader.py   # ModelDownloader (HF/ModelScope asset fetcher)
-├── capture.py      # ScreenCaptureService (mss)
-├── vision.py       # Vision: LiteLLM, Ollama, LM Studio, Qwen-VL
-└── tts.py          # TTS: Gemini, LiteLLM, Kokoro-ONNX, Piper, KittenTTS
-ui/
-└── index.html      # Single-file HTML: character, speech bubble, settings modal, context menu
-```
+**State Management** (`state.rs`):
+- `Config` - Serializable app configuration
+- `History` - Vec of recent roasts
+- `StateManager` - Handles persistence to config/cache dirs
+- `ProviderDef` - Static provider definitions
+
+**Screen Capture** (`capture.rs`):
+- `ScreenCapture::capture_primary()` - Returns PNG bytes + base64
+- Uses `xcap` for cross-platform monitor capture
+- Saves to cache dir
+
+**Vision** (`vision.rs`):
+- `VisionService` trait - async analyze(image, prompt) -> text
+- `GeminiVisionService` - Uses Gemini generateContent API
+- `OpenAIVisionService` - OpenAI-compatible chat completions
+- `create_vision_service()` - Factory function
+
+**TTS** (`tts.rs`):
+- `TTSService` trait - async synthesize(text) -> audio bytes
+- `GeminiTTSService` - Standard Gemini TTS
+- `GeminiLiveTTSService` - Live API (currently falls back)
+- `OpenAITTSService` - OpenAI speech endpoint
+- `AudioPlayer` - rodio-based playback
+
+**Commands** (`commands.rs`):
+- All Tauri command handlers
+- `roast_now` - Main capture → analyze → TTS flow
+- `toggle_monitoring` - Background interval task
+- `AppState` - Shared state with tokio::sync::RwLock
+
+### Frontend
+
+**Build Flow**:
+1. Vite builds `src/` → `dist/` (HTML + JS)
+2. Tauri embeds `dist/` into binary
+3. `tauri.conf.json` points to `../dist`
+
+**Key Functions** (`main.ts`):
+- `roast_now` - Calls backend, displays result, plays audio
+- `deliverRoast` - Shows speech bubble with text
+- `playAudio` - Decodes base64 and plays
+- `toggleMonitoring` - Starts/stops background roasting
+- `showSettings` - Opens settings modal
 
 ### Communication
 
-- **Python -> JS**: `window.evaluate_js('deliverRoast(jsonData)')` pushes roasts
-- **JS -> Python**: `window.pywebview.api.methodName()` (async, returns Promise)
+- **Rust → JS**: `app_handle.emit("event", data)`
+- **JS → Rust**: `invoke("command", args)` (async, returns Promise)
 
-### Bridge API (exposed to JS)
+## Configuration
 
-| Method | Purpose |
-|--------|---------|
-| `roast_now()` | Capture + vision + TTS, returns result dict |
-| `toggle_monitoring()` | Start/stop monitor thread |
-| `get_config()` | Return full config dict (api_keys masked) |
-| `set_config(key, value)` | Update one setting, persist |
-| `get_providers()` | Return PROVIDERS dict for settings UI |
-| `get_api_keys()` | Return masked API keys |
-| `save_api_key(provider, key)` | Save an API key, set env var |
-| `set_vision_config(provider, model)` | Update vision provider + model |
-| `set_tts_config(provider, model, voice)` | Update TTS provider + model + voice |
-| `quit()` | Stop monitor, destroy window |
+- Default scan interval: 600 seconds (10 minutes)
+- History: 20 entries max
+- Config: `%APPDATA%/lotaria/config.json`
+- Cache: `%LOCALAPPDATA%/lotaria/` (screenshots, audio)
+- Auto-cleanup after 24 hours
 
-### Configuration
+## Common Issues
 
-- API keys: From environment/`.env` or entered in-app (in-app keys override env vars)
-- Default scan interval: 300 seconds (5 minutes)
-- History: 20 entries max, persisted to `.temp/history.json`
-- Config persisted to `.temp/config.json`
-- Config keys: `interval`, `vision_provider`, `vision_model`, `tts_provider`, `tts_model`, `tts_voice`, `api_keys`, `speech_bubble_enabled`, `audio_enabled`
+1. **Build fails with "frontendDist doesn't exist"**:
+   - Run `npm run build` first to create `dist/`
 
-### UI Interaction
+2. **Icons missing**:
+   - Add `32x32.png`, `128x128.png`, `icon.ico` to `src-tauri/icons/`
 
-- **Right-click**: Context menu with controls (roast, monitoring, settings, interval, toggles)
-- **Settings modal**: API key management, vision/TTS provider and model selection
-- **Drag**: Character is draggable via pywebview drag region
-- **Eye tracking**: Character eyes follow the cursor position
-- **Animations**: Idle bobbing + eye blink, roasting shake, thinking pulse
+3. **Cargo check is slow first time**:
+   - First build downloads and compiles all dependencies
+
+## Code Style
+
+- Rust: Use `anyhow::Result` for errors, `tracing` for logs
+- TypeScript: Use strict types, avoid `any`
+- Frontend: Vanilla JS/TS, no frameworks
+- State: Prefer immutable updates

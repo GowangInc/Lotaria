@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lotaria</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      user-select: none;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: transparent;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #app {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Character */
+    #character {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      width: 100px;
+      height: 100px;
+      cursor: grab;
+      transition: transform 0.1s;
+      z-index: 10;
+    }
+
+    #character:active {
+      cursor: grabbing;
+    }
+
+    #character.thinking {
+      animation: pulse 1s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    .character-body {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(145deg, #2a2a4a, #1a1a2e);
+      border-radius: 16px;
+      border: 2px solid #e94560;
+      position: relative;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+
+    /* Eyes */
+    .eyes {
+      position: absolute;
+      top: 35%;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+    }
+
+    .eye {
+      width: 24px;
+      height: 24px;
+      background: #fff;
+      border-radius: 50%;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .pupil {
+      width: 10px;
+      height: 10px;
+      background: #000;
+      border-radius: 50%;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      transition: transform 0.1s;
+    }
+
+    /* Speech Bubble */
+    #speech-bubble {
+      position: absolute;
+      bottom: 130px;
+      right: 20px;
+      left: 20px;
+      max-width: 380px;
+      background: linear-gradient(145deg, #1a1a2e, #16213e);
+      border: 2px solid #e94560;
+      border-radius: 12px;
+      padding: 12px;
+      color: #e0e0e0;
+      font-size: 13px;
+      line-height: 1.4;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      opacity: 0;
+      transform: translateY(10px) scale(0.95);
+      transition: all 0.3s ease;
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    #speech-bubble.visible {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    #speech-bubble.error {
+      border-color: #ff6b6b;
+    }
+
+    #speech-bubble::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      right: 30px;
+      width: 0;
+      height: 0;
+      border-left: 10px solid transparent;
+      border-right: 10px solid transparent;
+      border-top: 10px solid #e94560;
+    }
+
+    #speech-text {
+      margin: 0;
+    }
+
+    /* Thinking Indicator */
+    #thinking {
+      position: absolute;
+      bottom: 130px;
+      right: 20px;
+      background: #1a1a2e;
+      border: 1px solid #e94560;
+      border-radius: 10px;
+      padding: 6px 12px;
+      color: #e94560;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 20;
+    }
+
+    #thinking.hidden {
+      display: none;
+    }
+
+    .dots {
+      display: flex;
+      gap: 3px;
+    }
+
+    .dot {
+      width: 5px;
+      height: 5px;
+      background: #e94560;
+      border-radius: 50%;
+      animation: bounce 0.6s ease-in-out infinite;
+    }
+
+    .dot:nth-child(2) { animation-delay: 0.1s; }
+    .dot:nth-child(3) { animation-delay: 0.2s; }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-3px); }
+    }
+
+    /* Context Menu - positioned within app bounds */
+    #context-menu {
+      position: absolute;
+      background: linear-gradient(145deg, #1a1a2e, #16213e);
+      border: 1px solid #2a2a4a;
+      border-radius: 8px;
+      padding: 6px 0;
+      min-width: 160px;
+      max-width: 200px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      z-index: 100;
+    }
+
+    #context-menu.hidden {
+      display: none;
+    }
+
+    .menu-item {
+      padding: 8px 14px;
+      color: #e0e0e0;
+      cursor: pointer;
+      font-size: 12px;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+
+    .menu-item:hover {
+      background: #2a2a4a;
+    }
+
+    .menu-item.danger {
+      color: #e94560;
+    }
+
+    .menu-separator {
+      height: 1px;
+      background: #2a2a4a;
+      margin: 6px 0;
+    }
+
+    /* Settings Modal - fits within window */
+    #settings-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(10, 10, 20, 0.95);
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+      z-index: 200;
+    }
+
+    #settings-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    #settings-header {
+      padding: 16px;
+      border-bottom: 1px solid #2a2a4a;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #settings-header h2 {
+      color: #e94560;
+      font-size: 18px;
+      margin: 0;
+    }
+
+    #settings-close {
+      background: none;
+      border: none;
+      color: #888;
+      font-size: 24px;
+      cursor: pointer;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+    }
+
+    #settings-close:hover {
+      background: #2a2a4a;
+      color: #e0e0e0;
+    }
+
+    #settings-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+    }
+
+    .settings-section {
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #1a1a2a;
+    }
+
+    .settings-section:last-child {
+      border-bottom: none;
+    }
+
+    .settings-section h3 {
+      color: #888;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+    }
+
+    .key-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .key-row label {
+      color: #e0e0e0;
+      font-size: 12px;
+    }
+
+    .key-input-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .key-row input {
+      flex: 1;
+      background: #0f0f23;
+      border: 1px solid #2a2a4a;
+      border-radius: 6px;
+      padding: 8px 10px;
+      color: #e0e0e0;
+      font-size: 12px;
+    }
+
+    .key-row input:focus {
+      outline: none;
+      border-color: #e94560;
+    }
+
+    .save-key-btn {
+      background: #e94560;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 12px;
+      color: white;
+      font-size: 11px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .save-key-btn:hover {
+      background: #ff6b6b;
+    }
+
+    .key-status {
+      font-size: 14px;
+      margin-left: 4px;
+    }
+
+    .key-status.set {
+      color: #00ff88;
+    }
+
+    .key-status.unset {
+      color: #666;
+    }
+
+    .select-group {
+      margin-bottom: 12px;
+    }
+
+    .select-group label {
+      display: block;
+      color: #888;
+      font-size: 11px;
+      margin-bottom: 6px;
+    }
+
+    .settings-select {
+      width: 100%;
+      background: #0f0f23;
+      border: 1px solid #2a2a4a;
+      border-radius: 6px;
+      padding: 8px 10px;
+      color: #e0e0e0;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .settings-select:focus {
+      outline: none;
+      border-color: #e94560;
+    }
+
+    .settings-btn {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 8px;
+    }
+
+    .settings-btn.primary {
+      background: #e94560;
+      color: white;
+    }
+
+    .settings-btn.primary:hover {
+      background: #ff6b6b;
+    }
+
+    .settings-btn.secondary {
+      background: #2a2a4a;
+      color: #e0e0e0;
+    }
+
+    .settings-btn.secondary:hover {
+      background: #3a3a5a;
+    }
+
+    /* Welcome Modal */
+    #welcome-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(10, 10, 20, 0.98);
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+      z-index: 300;
+    }
+
+    #welcome-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    #welcome-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+    }
+
+    #welcome-content h1 {
+      color: #e94560;
+      font-size: 22px;
+      margin-bottom: 8px;
+    }
+
+    .tagline {
+      color: #888;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+
+    .privacy-notice {
+      background: rgba(233, 69, 96, 0.1);
+      border: 1px solid rgba(233, 69, 96, 0.3);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 16px;
+    }
+
+    .privacy-notice h3 {
+      color: #e94560;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+
+    .privacy-notice ul {
+      margin: 0;
+      padding-left: 16px;
+      color: #e0e0e0;
+      font-size: 11px;
+      line-height: 1.7;
+    }
+
+    .provider-section h3 {
+      color: #888;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+
+    .provider-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    .provider-option {
+      background: #0f0f23;
+      border: 2px solid #2a2a4a;
+      border-radius: 8px;
+      padding: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .provider-option:hover {
+      border-color: #e94560;
+    }
+
+    .provider-option.selected {
+      border-color: #e94560;
+      background: #1a1a3e;
+    }
+
+    .provider-option.recommended {
+      border-color: #00ff88;
+    }
+
+    .provider-name {
+      font-weight: 600;
+      color: #e0e0e0;
+      font-size: 13px;
+      margin-bottom: 2px;
+    }
+
+    .provider-cost {
+      font-size: 10px;
+      color: #888;
+    }
+
+    .api-key-section {
+      margin-bottom: 16px;
+    }
+
+    .api-key-section input {
+      width: 100%;
+      background: #0f0f23;
+      border: 1px solid #2a2a4a;
+      border-radius: 6px;
+      padding: 10px;
+      color: #e0e0e0;
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+
+    .api-key-section input:focus {
+      outline: none;
+      border-color: #e94560;
+    }
+
+    .api-key-section .hint {
+      font-size: 11px;
+      color: #888;
+    }
+
+    .api-key-section .hint a {
+      color: #e94560;
+    }
+
+    .cost-estimate {
+      background: #0f0f23;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 16px;
+      font-size: 12px;
+      color: #e0e0e0;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 10px;
+      padding: 16px;
+      border-top: 1px solid #2a2a4a;
+    }
+
+    .action-buttons button {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .action-buttons .primary {
+      background: #e94560;
+      color: white;
+    }
+
+    .action-buttons .primary:hover:not(:disabled) {
+      background: #ff6b6b;
+    }
+
+    .action-buttons .primary:disabled {
+      background: #444;
+      color: #888;
+      cursor: not-allowed;
+    }
+
+    .action-buttons .secondary {
+      background: #2a2a4a;
+      color: #e0e0e0;
+    }
+
+    .action-buttons .secondary:hover {
+      background: #3a3a5a;
+    }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #0f0f23;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #2a2a4a;
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #3a3a5a;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- Speech Bubble -->
+    <div id="speech-bubble" class="hidden">
+      <p id="speech-text"></p>
+    </div>
+
+    <!-- Thinking Indicator -->
+    <div id="thinking" class="hidden">
+      <span>Thinking</span>
+      <div class="dots">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+    </div>
+
+    <!-- Character -->
+    <div id="character">
+      <div class="character-body">
+        <div class="eyes">
+          <div class="eye"><div class="pupil"></div></div>
+          <div class="eye"><div class="pupil"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="context-menu" class="hidden">
+      <div class="menu-item" id="menu-roast">🔥 Roast Now</div>
+      <div class="menu-item" id="menu-monitor">▶ Start Monitoring</div>
+      <div class="menu-separator"></div>
+      <div class="menu-item" id="menu-settings">⚙️ Settings</div>
+      <div class="menu-separator"></div>
+      <div class="menu-item danger" id="menu-quit">Quit</div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-overlay">
+      <div id="settings-header">
+        <h2>Settings</h2>
+        <button id="settings-close">×</button>
+      </div>
+      <div id="settings-content">
+        <div class="settings-section">
+          <h3>API Keys</h3>
+          <div id="api-keys-list"></div>
+        </div>
+
+        <div class="settings-section">
+          <h3>Vision</h3>
+          <div class="select-group">
+            <label>Provider</label>
+            <select class="settings-select" id="vision-provider-select"></select>
+          </div>
+          <div class="select-group">
+            <label>Model</label>
+            <select class="settings-select" id="vision-model-select"></select>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>Text-to-Speech</h3>
+          <div class="select-group">
+            <label>Provider</label>
+            <select class="settings-select" id="tts-provider-select"></select>
+          </div>
+          <div class="select-group">
+            <label>Model</label>
+            <select class="settings-select" id="tts-model-select"></select>
+          </div>
+          <div class="select-group" id="tts-voice-group">
+            <label>Voice</label>
+            <select class="settings-select" id="tts-voice-select"></select>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>History</h3>
+          <button class="settings-btn secondary" id="clear-history-btn">Clear History</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Welcome Modal -->
+    <div id="welcome-overlay">
+      <div id="welcome-content">
+        <h1>👋 Welcome to Lotaria</h1>
+        <div class="tagline">Your personal desktop roaster</div>
+
+        <div class="privacy-notice">
+          <h3>⚠️ Privacy Notice</h3>
+          <ul>
+            <li>I capture screenshots periodically to analyze what you're doing</li>
+            <li>Images are sent to AI for analysis via API</li>
+            <li>Screenshots auto-delete after 24 hours</li>
+            <li>You can pause monitoring anytime</li>
+          </ul>
+        </div>
+
+        <div class="provider-section">
+          <h3>Choose AI Provider</h3>
+          <div class="provider-list" id="welcome-provider-list"></div>
+        </div>
+
+        <div class="api-key-section">
+          <input type="password" id="welcome-api-key" placeholder="Enter your API key">
+          <div class="hint">
+            Get a free key at <a href="#" id="welcome-docs-link" target="_blank">provider website</a>
+          </div>
+        </div>
+
+        <div class="cost-estimate">
+          <strong>💰 Estimated cost:</strong> <span id="welcome-cost-text">FREE tier available</span>
+        </div>
+      </div>
+
+      <div class="action-buttons">
+        <button class="secondary" id="welcome-settings">More Options</button>
+        <button class="primary" id="welcome-start" disabled>Start Monitoring</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./main.ts"></script>
+</body>
+</html>

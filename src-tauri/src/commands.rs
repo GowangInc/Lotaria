@@ -446,6 +446,13 @@ pub fn get_accent_color() -> Result<String, String> {
     }
 }
 
+/// Set whether the window should ignore cursor events (click-through)
+#[tauri::command]
+pub fn set_ignore_cursor_events(window: tauri::WebviewWindow, ignore: bool) -> Result<(), String> {
+    tracing::info!("Setting ignore_cursor_events to: {}", ignore);
+    window.set_ignore_cursor_events(ignore).map_err(|e| e.to_string())
+}
+
 fn b64_encode(input: &[u8]) -> String {
     use base64::{engine::general_purpose::STANDARD, Engine};
     STANDARD.encode(input)

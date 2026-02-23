@@ -98,6 +98,9 @@ const welcomeOverlay = document.getElementById('welcome-overlay') as HTMLElement
 
 // Initialize
 async function init() {
+  // Enable click-through by default (clicks pass through to windows underneath)
+  await setClickThrough(true);
+
   // Load config
   config = await invoke('get_config');
   providers = await invoke('get_providers');
@@ -180,13 +183,15 @@ function startEyeTracking() {
 }
 
 // Deliver a roast
-function deliverRoast(result: RoastResult) {
+async function deliverRoast(result: RoastResult) {
   if (result.error) {
     showError(result.text);
     return;
   }
 
   if (config.speech_bubble_enabled) {
+    // Disable click-through so speech bubble can be read/interacted with
+    await setClickThrough(false);
     speechText.textContent = result.text;
     speechBubble.classList.add('visible');
     speechBubble.classList.remove('hidden');
@@ -196,9 +201,16 @@ function deliverRoast(result: RoastResult) {
   // No need to play again in the frontend
 
   // Auto-hide after duration
-  setTimeout(() => {
+  setTimeout(async () => {
     speechBubble.classList.remove('visible');
     speechBubble.classList.add('hidden');
+    // Re-enable click-through if no other overlays are open
+    if (!contextMenu.classList.contains('hidden') ||
+        settingsOverlay.classList.contains('open') ||
+        welcomeOverlay.classList.contains('open')) {
+      return;
+    }
+    await setClickThrough(true);
   }, (result.audio_duration * 1000) + 2000);
 }
 
@@ -206,14 +218,22 @@ function deliverRoast(result: RoastResult) {
 // This prevents double-playback and audio format issues
 
 // Show error
-function showError(message: string) {
+async function showError(message: string) {
+  await setClickThrough(false);
   speechText.textContent = message;
   speechBubble.classList.add('visible', 'error');
   speechBubble.classList.remove('hidden');
 
-  setTimeout(() => {
+  setTimeout(async () => {
     speechBubble.classList.remove('visible', 'error');
     speechBubble.classList.add('hidden');
+    // Re-enable click-through if no other overlays are open
+    if (!contextMenu.classList.contains('hidden') ||
+        settingsOverlay.classList.contains('open') ||
+        welcomeOverlay.classList.contains('open')) {
+      return;
+    }
+    await setClickThrough(true);
   }, 5000);
 }
 
@@ -258,7 +278,10 @@ async function triggerRoast() {
 }
 
 // Context menu - positioned within app bounds
-function showContextMenu(x: number, y: number) {
+async function showContextMenu(x: number, y: number) {
+  // Disable click-through so menu is interactive
+  await setClickThrough(false);
+
   const appRect = app.getBoundingClientRect();
   const menuWidth = 180;
   const menuHeight = 150; // approximate
@@ -279,13 +302,22 @@ function showContextMenu(x: number, y: number) {
   contextMenu.classList.remove('hidden');
 }
 
-function hideContextMenu() {
+async function hideContextMenu() {
   contextMenu.classList.add('hidden');
+  // Re-enable click-through if no other overlays are open
+  if (!settingsOverlay.classList.contains('open') &&
+      !welcomeOverlay.classList.contains('open') &&
+      !speechBubble.classList.contains('visible')) {
+    await setClickThrough(true);
+  }
 }
 
 // Settings modal
 async function showSettings() {
   try {
+    // Disable click-through so settings are interactive
+    await setClickThrough(false);
+
     // Resize window to fit settings content
     const window = getCurrentWebviewWindow();
     await window.setSize({ type: 'Physical', width: 420, height: 700 });
@@ -356,6 +388,9 @@ async function showSettings() {
 
 async function closeSettings() {
   settingsOverlay.classList.remove('open');
+
+  // Re-enable click-through
+  await setClickThrough(true);
 
   // Restore window size
   const window = getCurrentWebviewWindow();
@@ -533,7 +568,10 @@ function updateCostEstimator() {
 }
 
 // Welcome modal
-function showWelcomeModal() {
+async function showWelcomeModal() {
+  // Disable click-through so welcome modal is interactive
+  await setClickThrough(false);
+
   const providerList = document.getElementById('welcome-provider-list') as HTMLElement;
   providerList.innerHTML = '';
 
@@ -602,6 +640,9 @@ async function startFromWelcome() {
   await toggleMonitoring();
 
   welcomeOverlay.classList.remove('open');
+
+  // Enable click-through now that welcome is closed
+  await setClickThrough(true);
 }
 
 // Toggle monitoring
@@ -650,8 +691,30 @@ function setupDrag() {
   });
 }
 
+// Toggle window click-through
+async function setClickThrough(enable: boolean) {
+  try {
+    await invoke('set_ignore_cursor_events', { ignore: enable });
+  } catch (e) {
+    console.error('Failed to set click-through:', e);
+  }
+}
+
 // Event listeners
 function setupEventListeners() {
+  // Enable click capture when mouse is over the character
+  character.addEventListener('mouseenter', () => setClickThrough(false));
+  character.addEventListener('mouseleave', () => {
+    // Only enable click-through if no overlays are open
+    if (!contextMenu.classList.contains('hidden') || 
+        settingsOverlay.classList.contains('open') ||
+        welcomeOverlay.classList.contains('open') ||
+        speechBubble.classList.contains('visible')) {
+      return;
+    }
+    setClickThrough(true);
+  });
+
   // Right-click context menu
   character.addEventListener('contextmenu', (e) => {
     e.preventDefault();

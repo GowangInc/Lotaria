@@ -83,6 +83,12 @@ fn main() {
             {
                 Ok(w) => {
                     tracing::info!("Window created successfully");
+                    // Enable click-through by default (clicks pass to windows underneath)
+                    if let Err(e) = w.set_ignore_cursor_events(true) {
+                        tracing::warn!("Failed to set ignore cursor events: {}", e);
+                    } else {
+                        tracing::info!("Click-through enabled");
+                    }
                     w
                 }
                 Err(e) => {
@@ -135,6 +141,7 @@ fn main() {
             quit,
             get_cursor_position,
             get_accent_color,
+            set_ignore_cursor_events,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

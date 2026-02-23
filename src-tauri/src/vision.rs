@@ -47,19 +47,20 @@ impl VisionService for GeminiVisionService {
         tracing::info!("Vision API call - model: {}, prompt_len: {}, image_len: {}", 
             self.model_name(), prompt.len(), image_base64.len());
 
+        // Build parts dynamically - only include image if provided
+        let mut parts = vec![json!({"text": prompt})];
+        if !image_base64.is_empty() {
+            parts.push(json!({
+                "inline_data": {
+                    "mime_type": "image/png",
+                    "data": image_base64
+                }
+            }));
+        }
+
         let body = json!({
             "contents": [{
-                "parts": [
-                    {
-                        "text": prompt
-                    },
-                    {
-                        "inline_data": {
-                            "mime_type": "image/png",
-                            "data": image_base64
-                        }
-                    }
-                ]
+                "parts": parts
             }],
             "generationConfig": {
                 "maxOutputTokens": 2048,
@@ -175,23 +176,26 @@ impl VisionService for OpenAIVisionService {
     async fn analyze(&self, image_base64: &str, prompt: &str) -> Result<String> {
         let url = format!("{}/chat/completions", self.base_url);
 
+        // Build content dynamically - only include image if provided
+        let mut content = vec![json!({
+            "type": "text",
+            "text": prompt
+        })];
+        if !image_base64.is_empty() {
+            content.push(json!({
+                "type": "image_url",
+                "image_url": {
+                    "url": format!("data:image/png;base64,{}", image_base64)
+                }
+            }));
+        }
+
         let body = json!({
             "model": self.model,
             "messages": [
                 {
                     "role": "user",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": prompt
-                        },
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": format!("data:image/png;base64,{}", image_base64)
-                            }
-                        }
-                    ]
+                    "content": content
                 }
             ],
             "max_tokens": 256,

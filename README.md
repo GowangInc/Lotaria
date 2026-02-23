@@ -150,25 +150,23 @@ Choose from 10 uniquely animated designs in Settings:
 - **☁️ Cloud** - Fluffy puffs, rain drops, lightning flash, drifting
 - **🐙 Octopus** - Wavy tentacles, suction cups, water ripples, swimming
 
-## Configuration
+## How to Use
 
-Configuration is stored in:
-- **Windows**: `%APPDATA%\lotaria\config.json`
-- **macOS**: `~/Library/Application Support/lotaria/config.json`
-- **Linux**: `~/.config/lotaria/config.json`
+### Interacting with the Pet
 
-Temporary files (screenshots, audio) are stored in cache directories and auto-cleaned after 24 hours.
+The pet lives in a transparent, frameless window that stays always-on-top. The app uses **click-through** technology so you can interact with windows underneath:
 
-## Website
+| Area | Interaction |
+|------|-------------|
+| **Over the pet** | Click-through disabled — you can drag, right-click, or interact with the pet |
+| **Empty space** | Click-through enabled — clicks pass through to windows underneath |
 
-A landing page is available in `website/` (gitignored). Deploy to Cloudflare Pages:
+**Controls:**
+- **Left-click + drag** — Move the pet anywhere on screen
+- **Right-click** — Open context menu (Roast Now, Start/Pause Monitoring, Settings, Quit)
+- **Click outside menu** — Close context menu and return to click-through mode
 
-```bash
-cd website/
-# Drag and drop index.html to pages.cloudflare.com
-```
-
-See `website/README.md` for deployment instructions.
+The pet automatically detects when your cursor is over it (within the 100×100px avatar area) and switches between interactive and pass-through modes.
 
 ## Architecture
 

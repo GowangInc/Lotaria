@@ -87,6 +87,7 @@ fn main() {
             get_history,
             mark_first_run_complete,
             get_moods,
+            improve_mood,
             quit,
         ])
         .run(tauri::generate_context!())

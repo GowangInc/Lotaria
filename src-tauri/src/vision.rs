@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use reqwest::Client;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::json;
 
 /// Vision service trait
@@ -44,6 +44,9 @@ impl VisionService for GeminiVisionService {
             self.api_key
         );
 
+        tracing::info!("Vision API call - model: {}, prompt_len: {}, image_len: {}", 
+            self.model_name(), prompt.len(), image_base64.len());
+
         let body = json!({
             "contents": [{
                 "parts": [
@@ -59,7 +62,7 @@ impl VisionService for GeminiVisionService {
                 ]
             }],
             "generationConfig": {
-                "maxOutputTokens": 256,
+                "maxOutputTokens": 2048,
                 "temperature": 0.7
             }
         });
@@ -71,23 +74,47 @@ impl VisionService for GeminiVisionService {
             .send()
             .await?;
 
-        if !response.status().is_success() {
-            let error_text = response.text().await?;
-            if error_text.contains("429") || error_text.contains("rate limit") {
+        let status = response.status();
+        let response_text = response.text().await?;
+        
+        tracing::info!("Vision API response status: {}", status);
+
+        if !status.is_success() {
+            tracing::error!("Vision API error: {}", response_text);
+            if response_text.contains("429") || response_text.contains("rate limit") {
                 return Err(anyhow!("Rate limit exceeded. Please try again later."));
             }
-            return Err(anyhow!("Gemini API error: {}", error_text));
+            return Err(anyhow!("Gemini API error: {}", response_text));
         }
 
-        let gemini_response: GeminiResponse = response.json().await?;
+        let gemini_response: GeminiResponse = match serde_json::from_str(&response_text) {
+            Ok(r) => r,
+            Err(e) => {
+                tracing::error!("Failed to parse vision response: {}. Response: {}", e, response_text);
+                return Err(anyhow!("Failed to parse response: {}", e));
+            }
+        };
         
-        let text = gemini_response
+        // Gemini 2.5 models return "thought" parts (internal reasoning) followed by
+        // the actual response. Filter out thought parts to get the real answer.
+        let parts = gemini_response
             .candidates
             .get(0)
-            .and_then(|c| c.content.parts.get(0))
-            .map(|p| p.text.clone())
+            .map(|c| &c.content.parts)
+            .cloned()
             .unwrap_or_default();
 
+        // Prefer non-thought parts (the actual response)
+        let non_thought: Vec<_> = parts.iter().filter(|p| !p.thought).collect();
+        let text = if !non_thought.is_empty() {
+            non_thought.iter().map(|p| p.text.as_str()).collect::<Vec<_>>().join("")
+        } else {
+            // Fallback: use all parts if none are marked as non-thought
+            parts.iter().map(|p| p.text.as_str()).collect::<Vec<_>>().join("")
+        };
+
+        tracing::info!("Vision analysis result ({} parts, {} thought): {}",
+            parts.len(), parts.iter().filter(|p| p.thought).count(), text);
         Ok(text)
     }
 }
@@ -109,7 +136,11 @@ struct GeminiContent {
 
 #[derive(Debug, Deserialize, Clone)]
 struct GeminiPart {
+    #[serde(default)]
     text: String,
+    /// Gemini 2.5 models include "thought" parts for internal reasoning
+    #[serde(default)]
+    thought: bool,
 }
 
 /// OpenAI-compatible vision service (works with OpenAI, Groq, etc.)

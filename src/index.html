@@ -1,15 +1,79 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lotaria</title>
   <style>
+    :root {
+      --color-primary: #e94560;
+      --color-primary-hover: #ff6b6b;
+      --color-primary-bg: rgba(233, 69, 96, 0.1);
+      --color-primary-border: rgba(233, 69, 96, 0.3);
+      --color-bg-deep: #0f0f23;
+      --color-bg-dark: #1a1a2e;
+      --color-bg-medium: #16213e;
+      --color-bg-elevated: #2a2a4a;
+      --color-bg-hover: #3a3a5a;
+      --color-bg-selected: #1a1a3e;
+      --color-text: #e0e0e0;
+      --color-text-muted: #888;
+      --color-text-dim: #666;
+      --color-border: #2a2a4a;
+      --color-section-border: #1a1a2a;
+      --color-success: #00ff88;
+      --color-disabled-bg: #444;
+      --color-disabled-text: #888;
+      --color-eye-bg: #fff;
+      --color-pupil: #000;
+      --color-overlay: rgba(10, 10, 20, 0.95);
+      --color-overlay-strong: rgba(10, 10, 20, 0.98);
+      --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      --shadow-strong: 0 8px 32px rgba(0, 0, 0, 0.5);
+      --color-char-from: #2a2a4a;
+      --color-char-to: #1a1a2e;
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root {
+        --color-primary-bg: rgba(233, 69, 96, 0.08);
+        --color-primary-border: rgba(233, 69, 96, 0.25);
+        --color-bg-deep: #ffffff;
+        --color-bg-dark: #f0f0f4;
+        --color-bg-medium: #e8e8ec;
+        --color-bg-elevated: #d8d8e0;
+        --color-bg-hover: #c8c8d0;
+        --color-bg-selected: #e0e0f0;
+        --color-text: #1a1a2e;
+        --color-text-muted: #666;
+        --color-text-dim: #999;
+        --color-border: #c0c0cc;
+        --color-section-border: #d8d8e0;
+        --color-success: #00a854;
+        --color-disabled-bg: #ccc;
+        --color-disabled-text: #888;
+        --color-eye-bg: #fff;
+        --color-pupil: #1a1a2e;
+        --color-overlay: rgba(240, 240, 244, 0.96);
+        --color-overlay-strong: rgba(240, 240, 244, 0.98);
+        --shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+        --shadow-strong: 0 8px 32px rgba(0, 0, 0, 0.18);
+        --color-char-from: #d8d8e0;
+        --color-char-to: #f0f0f4;
+      }
+    }
+
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
       user-select: none;
+    }
+
+    html {
+      background: transparent !important;
+      pointer-events: none;
     }
 
     body {
@@ -18,6 +82,7 @@
       overflow: hidden;
       width: 100vw;
       height: 100vh;
+      pointer-events: none;
     }
 
     #app {
@@ -25,6 +90,7 @@
       height: 100%;
       position: relative;
       overflow: hidden;
+      pointer-events: none;
     }
 
     /* Character */
@@ -37,29 +103,74 @@
       cursor: grab;
       transition: transform 0.1s;
       z-index: 10;
+      pointer-events: auto;
     }
 
     #character:active {
       cursor: grabbing;
     }
 
+    #character * {
+      pointer-events: auto;
+    }
+
     #character.thinking {
       animation: pulse 1s ease-in-out infinite;
     }
 
+    #character.hiding {
+      animation: collapse 0.3s ease-in forwards;
+      pointer-events: none;
+    }
+
+    #character.showing {
+      animation: expand 0.3s ease-out forwards;
+    }
+
     @keyframes pulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.05); }
+
+      0%,
+      100% {
+        transform: scale(1);
+      }
+
+      50% {
+        transform: scale(1.05);
+      }
+    }
+
+    @keyframes collapse {
+      0% {
+        transform: scale(1);
+        opacity: 1;
+      }
+
+      100% {
+        transform: scale(0.1);
+        opacity: 0.3;
+      }
+    }
+
+    @keyframes expand {
+      0% {
+        transform: scale(0.1);
+        opacity: 0.3;
+      }
+
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
     }
 
     .character-body {
       width: 100%;
       height: 100%;
-      background: linear-gradient(145deg, #2a2a4a, #1a1a2e);
+      background: linear-gradient(145deg, var(--color-char-from), var(--color-char-to));
       border-radius: 16px;
-      border: 2px solid #e94560;
+      border: 2px solid var(--color-primary);
       position: relative;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      box-shadow: var(--shadow);
     }
 
     /* Eyes */
@@ -75,7 +186,7 @@
     .eye {
       width: 24px;
       height: 24px;
-      background: #fff;
+      background: var(--color-eye-bg);
       border-radius: 50%;
       position: relative;
       overflow: hidden;
@@ -84,13 +195,988 @@
     .pupil {
       width: 10px;
       height: 10px;
-      background: #000;
+      background: var(--color-pupil);
       border-radius: 50%;
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
       transition: transform 0.1s;
+    }
+
+    /* ===== Pet Styles ===== */
+
+    /* 1. Default (Retro Computer) - CRT flicker + scanlines */
+    #character.pet-default .character-body {
+      border-radius: 8px;
+      background: linear-gradient(145deg, #2a4a3a, #1a2a2e);
+      border: 3px solid var(--color-primary);
+      position: relative;
+      animation: pet-crt-flicker 4s ease-in-out infinite;
+      overflow: visible;
+    }
+
+    #character.pet-default .character-body::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 255, 136, 0.03) 0px,
+        rgba(0, 255, 136, 0.03) 2px,
+        transparent 2px,
+        transparent 4px
+      );
+      pointer-events: none;
+      animation: pet-scanlines 8s linear infinite;
+    }
+
+    #character.pet-default .character-body::after {
+      content: '';
+      position: absolute;
+      top: -6px;
+      left: 8px;
+      width: 6px;
+      height: 6px;
+      background: var(--color-success);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--color-success);
+      animation: pet-power-led 2s ease-in-out infinite;
+    }
+
+    @keyframes pet-crt-flicker {
+      0%, 100% { transform: translateY(0); filter: brightness(1); }
+      50% { transform: translateY(-3px); filter: brightness(1.05); }
+      51% { filter: brightness(0.95); }
+    }
+
+    @keyframes pet-scanlines {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(4px); }
+    }
+
+    @keyframes pet-power-led {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* 2. Cat - fuzzy, with whiskers and tail */
+    #character.pet-cat .character-body {
+      border-radius: 45% 45% 38% 38%;
+      background: linear-gradient(145deg, #4a3a5a, #2a1a3a);
+      position: relative;
+      animation: pet-cat-breathe 3s ease-in-out infinite;
+    }
+
+    /* Ears */
+    #character.pet-cat .character-body::before,
+    #character.pet-cat .character-body::after {
+      content: '';
+      position: absolute;
+      top: -12px;
+      width: 0;
+      height: 0;
+      border-left: 12px solid transparent;
+      border-right: 12px solid transparent;
+      border-bottom: 18px solid #4a3a5a;
+      filter: drop-shadow(0 -2px 4px rgba(0, 0, 0, 0.3));
+      animation: pet-ear-twitch 5s ease-in-out infinite;
+    }
+
+    #character.pet-cat .character-body::before {
+      left: 8px;
+      transform: rotate(-12deg);
+      animation-delay: 0.2s;
+    }
+
+    #character.pet-cat .character-body::after {
+      right: 8px;
+      transform: rotate(12deg);
+    }
+
+    /* Whiskers */
+    #character.pet-cat .eyes::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: -20px;
+      right: -20px;
+      height: 1px;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, transparent 70%);
+      box-shadow:
+        0 -6px 0 rgba(255, 255, 255, 0.3),
+        0 6px 0 rgba(255, 255, 255, 0.3);
+      pointer-events: none;
+      animation: pet-whisker-wiggle 4s ease-in-out infinite;
+    }
+
+    #character.pet-cat .eye {
+      width: 20px;
+      height: 26px;
+      border-radius: 50% 50% 48% 48%;
+      background: #ffdd44;
+    }
+
+    #character.pet-cat .pupil {
+      width: 6px;
+      height: 18px;
+      border-radius: 50%;
+      background: #000;
+    }
+
+    @keyframes pet-cat-breathe {
+      0%, 100% { transform: scale(1) rotate(0deg); }
+      25% { transform: scale(1.02) rotate(1deg); }
+      50% { transform: scale(1) rotate(0deg); }
+      75% { transform: scale(1.02) rotate(-1deg); }
+    }
+
+    @keyframes pet-ear-twitch {
+      0%, 100% { transform: rotate(0deg); }
+      10% { transform: rotate(-5deg); }
+      20% { transform: rotate(0deg); }
+    }
+
+    @keyframes pet-whisker-wiggle {
+      0%, 100% { transform: scaleX(1); }
+      50% { transform: scaleX(1.1); }
+    }
+
+    /* 3. Ghost - ethereal with flowing energy */
+    #character.pet-ghost .character-body {
+      border-radius: 50% 50% 0 0;
+      clip-path: polygon(
+        0% 0%, 100% 0%, 100% 70%,
+        92% 78%, 85% 72%, 77% 80%, 70% 72%,
+        62% 78%, 55% 72%, 47% 80%, 40% 72%,
+        32% 78%, 25% 72%, 17% 80%, 10% 72%,
+        5% 78%, 0% 72%
+      );
+      background: linear-gradient(180deg,
+        rgba(230, 230, 255, 0.9) 0%,
+        rgba(200, 210, 255, 0.85) 50%,
+        rgba(180, 190, 255, 0.75) 100%
+      );
+      border: none;
+      box-shadow:
+        0 0 30px rgba(200, 210, 255, 0.5),
+        inset 0 -20px 20px rgba(150, 160, 255, 0.2);
+      animation: pet-ghost-float 3.5s ease-in-out infinite;
+      position: relative;
+    }
+
+    /* Spooky glow trail */
+    #character.pet-ghost .character-body::before {
+      content: '';
+      position: absolute;
+      top: 60%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 70%;
+      height: 40%;
+      background: radial-gradient(ellipse at top, rgba(180, 190, 255, 0.4) 0%, transparent 70%);
+      filter: blur(8px);
+      animation: pet-ghost-trail 3.5s ease-in-out infinite;
+    }
+
+    /* Spooky mouth */
+    #character.pet-ghost .character-body::after {
+      content: '';
+      position: absolute;
+      bottom: 25%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 20px;
+      height: 12px;
+      border-radius: 0 0 50% 50%;
+      background: rgba(100, 110, 150, 0.6);
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    #character.pet-ghost .eye {
+      width: 22px;
+      height: 22px;
+      background: rgba(50, 60, 100, 0.7);
+      box-shadow:
+        inset 0 2px 4px rgba(0, 0, 0, 0.3),
+        0 0 10px rgba(100, 110, 200, 0.4);
+    }
+
+    #character.pet-ghost .pupil {
+      width: 8px;
+      height: 8px;
+      background: rgba(200, 210, 255, 0.9);
+      box-shadow: 0 0 6px rgba(200, 210, 255, 0.8);
+    }
+
+    @keyframes pet-ghost-float {
+      0%, 100% {
+        transform: translateY(0) rotate(0deg);
+        filter: brightness(1);
+      }
+      25% { transform: translateY(-8px) rotate(-2deg); }
+      50% {
+        transform: translateY(-12px) rotate(0deg);
+        filter: brightness(1.1);
+      }
+      75% { transform: translateY(-8px) rotate(2deg); }
+    }
+
+    @keyframes pet-ghost-trail {
+      0%, 100% { opacity: 0.4; transform: translateX(-50%) scaleY(1); }
+      50% { opacity: 0.6; transform: translateX(-50%) scaleY(1.2); }
+    }
+
+    /* 4. Robot - mechanical with panels and antenna */
+    #character.pet-robot .character-body {
+      border-radius: 6px;
+      background:
+        linear-gradient(145deg, #3a4a5a, #2a3a4a),
+        linear-gradient(90deg, transparent 48%, rgba(255,255,255,0.1) 50%, transparent 52%),
+        linear-gradient(0deg, transparent 48%, rgba(255,255,255,0.1) 50%, transparent 52%);
+      border: 2px solid #4a5a6a;
+      box-shadow:
+        inset 2px 2px 4px rgba(255, 255, 255, 0.1),
+        inset -2px -2px 4px rgba(0, 0, 0, 0.3),
+        0 4px 8px rgba(0, 0, 0, 0.4);
+      animation: pet-robot-process 2s steps(8) infinite;
+      position: relative;
+    }
+
+    /* Antenna */
+    #character.pet-robot .character-body::before {
+      content: '';
+      position: absolute;
+      top: -16px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 3px;
+      height: 12px;
+      background: linear-gradient(180deg, #4a5a6a 0%, var(--color-primary) 100%);
+      border-radius: 2px;
+    }
+
+    /* Antenna bulb */
+    #character.pet-robot .character-body::after {
+      content: '';
+      position: absolute;
+      top: -22px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 10px;
+      height: 10px;
+      background: var(--color-primary);
+      border-radius: 50%;
+      box-shadow:
+        0 0 10px var(--color-primary),
+        inset -2px -2px 3px rgba(0, 0, 0, 0.3);
+      animation: pet-robot-beacon 1.5s ease-in-out infinite;
+    }
+
+    /* Rivets - using box-shadow on eyes */
+    #character.pet-robot .eyes::after {
+      content: '';
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: #2a3a4a;
+      box-shadow:
+        -35px -15px 0 #2a3a4a,
+        35px -15px 0 #2a3a4a,
+        -35px 25px 0 #2a3a4a,
+        35px 25px 0 #2a3a4a;
+      top: 0;
+      left: 50%;
+      pointer-events: none;
+    }
+
+    #character.pet-robot .eye {
+      width: 28px;
+      height: 20px;
+      background: #1a2a3a;
+      border-radius: 3px;
+      border: 2px solid #4a5a6a;
+      box-shadow:
+        inset 0 2px 4px rgba(0, 0, 0, 0.5),
+        0 0 8px rgba(0, 255, 136, 0.3);
+    }
+
+    #character.pet-robot .pupil {
+      width: 16px;
+      height: 12px;
+      background: var(--color-success);
+      border-radius: 2px;
+      box-shadow:
+        0 0 8px var(--color-success),
+        inset 0 0 4px rgba(255, 255, 255, 0.3);
+      animation: pet-robot-scan 3s linear infinite;
+    }
+
+    @keyframes pet-robot-process {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-1px); }
+    }
+
+    @keyframes pet-robot-beacon {
+      0%, 100% {
+        opacity: 1;
+        box-shadow: 0 0 10px var(--color-primary), inset -2px -2px 3px rgba(0, 0, 0, 0.3);
+      }
+      50% {
+        opacity: 0.5;
+        box-shadow: 0 0 20px var(--color-primary), inset -2px -2px 3px rgba(0, 0, 0, 0.3);
+      }
+    }
+
+    @keyframes pet-robot-scan {
+      0%, 100% { filter: brightness(1); }
+      50% { filter: brightness(1.3); }
+    }
+
+    /* 5. Blob - gooey liquid creature */
+    #character.pet-blob .character-body {
+      border: none;
+      background:
+        radial-gradient(circle at 30% 30%, rgba(255, 100, 200, 0.4) 0%, transparent 50%),
+        radial-gradient(circle at 70% 60%, rgba(100, 200, 255, 0.4) 0%, transparent 50%),
+        linear-gradient(135deg, #e94560, #9b59b6);
+      box-shadow:
+        0 8px 16px rgba(233, 69, 96, 0.4),
+        inset -8px -8px 16px rgba(0, 0, 0, 0.2),
+        inset 8px 8px 16px rgba(255, 255, 255, 0.1);
+      animation:
+        pet-blob-morph 5s ease-in-out infinite,
+        pet-blob-jiggle 3s ease-in-out infinite;
+      border-radius: 60% 40% 50% 50% / 50% 60% 40% 50%;
+      filter: blur(0.5px);
+      position: relative;
+    }
+
+    /* Gooey drip effect */
+    #character.pet-blob .character-body::before {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 30%;
+      width: 16px;
+      height: 10px;
+      background: linear-gradient(180deg, rgba(233, 69, 96, 0.8) 0%, rgba(233, 69, 96, 0) 100%);
+      border-radius: 50%;
+      filter: blur(1px);
+      animation: pet-blob-drip 4s ease-in-out infinite;
+    }
+
+    /* Second drip */
+    #character.pet-blob .character-body::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      right: 25%;
+      width: 12px;
+      height: 8px;
+      background: linear-gradient(180deg, rgba(155, 89, 182, 0.8) 0%, rgba(155, 89, 182, 0) 100%);
+      border-radius: 50%;
+      filter: blur(1px);
+      animation: pet-blob-drip 4s ease-in-out infinite 0.5s;
+    }
+
+    #character.pet-blob .eye {
+      background: rgba(255, 255, 255, 0.9);
+      border: none;
+      box-shadow:
+        inset 0 2px 4px rgba(0, 0, 0, 0.2),
+        0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    #character.pet-blob .pupil {
+      background: #2a1a3a;
+      animation: pet-blob-pupil-swim 4s ease-in-out infinite;
+    }
+
+    @keyframes pet-blob-morph {
+      0%, 100% {
+        border-radius: 60% 40% 50% 50% / 50% 60% 40% 50%;
+      }
+      20% {
+        border-radius: 45% 55% 48% 52% / 52% 45% 55% 48%;
+      }
+      40% {
+        border-radius: 52% 48% 55% 45% / 48% 52% 48% 52%;
+      }
+      60% {
+        border-radius: 48% 52% 45% 55% / 55% 48% 52% 45%;
+      }
+      80% {
+        border-radius: 55% 45% 52% 48% / 45% 55% 45% 55%;
+      }
+    }
+
+    @keyframes pet-blob-jiggle {
+      0%, 100% { transform: scale(1, 1); }
+      25% { transform: scale(1.05, 0.95); }
+      50% { transform: scale(0.95, 1.05); }
+      75% { transform: scale(1.02, 0.98); }
+    }
+
+    @keyframes pet-blob-drip {
+      0%, 100% { transform: translateY(0) scaleY(1); opacity: 0.7; }
+      50% { transform: translateY(3px) scaleY(1.3); opacity: 0.9; }
+    }
+
+    @keyframes pet-blob-pupil-swim {
+      0%, 100% { transform: translate(-50%, -50%); }
+      25% { transform: translate(-48%, -52%); }
+      50% { transform: translate(-52%, -50%); }
+      75% { transform: translate(-50%, -48%); }
+    }
+
+    /* 6. Owl - wise with feather patterns */
+    #character.pet-owl .character-body {
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 50% 45%, rgba(139, 90, 60, 0.3) 0%, transparent 30%),
+        radial-gradient(circle at 30% 70%, rgba(101, 67, 33, 0.2) 0%, transparent 25%),
+        radial-gradient(circle at 70% 70%, rgba(101, 67, 33, 0.2) 0%, transparent 25%),
+        linear-gradient(145deg, #5a4a3a, #3a2a1a);
+      border: 2px solid #6a5a4a;
+      box-shadow:
+        0 6px 16px rgba(0, 0, 0, 0.4),
+        inset 0 -10px 20px rgba(0, 0, 0, 0.2);
+      animation: pet-owl-hoot 6s ease-in-out infinite;
+      position: relative;
+    }
+
+    /* Ear tufts */
+    #character.pet-owl .character-body::before,
+    #character.pet-owl .character-body::after {
+      content: '';
+      position: absolute;
+      top: -8px;
+      width: 0;
+      height: 0;
+      border-left: 10px solid transparent;
+      border-right: 10px solid transparent;
+      border-bottom: 16px solid #5a4a3a;
+      filter: drop-shadow(0 -2px 3px rgba(0, 0, 0, 0.3));
+      animation: pet-owl-tuft 7s ease-in-out infinite;
+    }
+
+    #character.pet-owl .character-body::before {
+      left: 12px;
+      transform: rotate(-18deg);
+    }
+
+    #character.pet-owl .character-body::after {
+      right: 12px;
+      transform: rotate(18deg);
+      animation-delay: 0.5s;
+    }
+
+    /* Beak using eyes container */
+    #character.pet-owl .eyes::after {
+      content: '';
+      position: absolute;
+      bottom: -18px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-top: 10px solid #d4a574;
+      filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.3));
+      pointer-events: none;
+    }
+
+    #character.pet-owl .eye {
+      width: 32px;
+      height: 32px;
+      background: radial-gradient(circle at 40% 40%, #fff 0%, #f0e8d8 100%);
+      border: 3px solid #3a2a1a;
+      box-shadow:
+        inset 0 2px 4px rgba(0, 0, 0, 0.1),
+        0 0 0 2px #5a4a3a,
+        0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    #character.pet-owl .pupil {
+      width: 16px;
+      height: 16px;
+      background: radial-gradient(circle at 35% 35%, #2a1a0a 0%, #000 100%);
+      box-shadow: 0 0 6px rgba(255, 200, 100, 0.4);
+      animation: pet-owl-blink 8s ease-in-out infinite;
+    }
+
+    @keyframes pet-owl-hoot {
+      0%, 100% { transform: rotate(0deg) scale(1); }
+      15% { transform: rotate(6deg) scale(1.01); }
+      30% { transform: rotate(0deg) scale(1); }
+      45% { transform: rotate(-4deg) scale(1.01); }
+      60% { transform: rotate(0deg) scale(1); }
+    }
+
+    @keyframes pet-owl-tuft {
+      0%, 100% { transform: rotate(0deg) scaleY(1); }
+      50% { transform: rotate(-3deg) scaleY(1.1); }
+    }
+
+    @keyframes pet-owl-blink {
+      0%, 100%, 48%, 52% { transform: translate(-50%, -50%) scaleY(1); }
+      50% { transform: translate(-50%, -50%) scaleY(0.1); }
+    }
+
+    /* 7. Alien - otherworldly with energy field */
+    #character.pet-alien .character-body {
+      border-radius: 55% 55% 45% 45%;
+      background:
+        radial-gradient(ellipse at 50% 30%, rgba(0, 255, 200, 0.2) 0%, transparent 50%),
+        radial-gradient(ellipse at 30% 60%, rgba(100, 255, 150, 0.15) 0%, transparent 40%),
+        radial-gradient(ellipse at 70% 60%, rgba(100, 255, 150, 0.15) 0%, transparent 40%),
+        linear-gradient(135deg, #1a4a3a, #0a2a1a);
+      border: 2px solid var(--color-success);
+      box-shadow:
+        0 0 20px rgba(0, 255, 136, 0.4),
+        inset 0 -15px 25px rgba(0, 255, 136, 0.1),
+        inset 0 2px 4px rgba(255, 255, 255, 0.1);
+      animation: pet-alien-pulse 3s ease-in-out infinite;
+      position: relative;
+      overflow: visible;
+    }
+
+    /* Energy field */
+    #character.pet-alien .character-body::before {
+      content: '';
+      position: absolute;
+      inset: -6px;
+      border-radius: inherit;
+      background: radial-gradient(circle at 50% 50%,
+        transparent 60%,
+        rgba(0, 255, 136, 0.2) 80%,
+        transparent 100%
+      );
+      animation: pet-alien-field 3s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    /* Antenna/sensor */
+    #character.pet-alien .character-body::after {
+      content: '';
+      position: absolute;
+      top: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 20px;
+      height: 4px;
+      background: linear-gradient(90deg,
+        transparent 0%,
+        var(--color-success) 20%,
+        var(--color-success) 80%,
+        transparent 100%
+      );
+      border-radius: 2px;
+      box-shadow:
+        0 0 8px var(--color-success),
+        0 -3px 0 -1px var(--color-success),
+        0 3px 0 -1px var(--color-success);
+      animation: pet-alien-scan 2s linear infinite;
+    }
+
+    #character.pet-alien .eye {
+      width: 28px;
+      height: 34px;
+      background: radial-gradient(ellipse at 40% 40%, #e0ffe8 0%, #b0ffc8 100%);
+      border-radius: 45% 45% 48% 48%;
+      border: 2px solid rgba(0, 255, 136, 0.4);
+      box-shadow:
+        inset 0 4px 8px rgba(0, 255, 136, 0.2),
+        0 0 12px rgba(0, 255, 136, 0.3);
+    }
+
+    #character.pet-alien .pupil {
+      width: 8px;
+      height: 22px;
+      background: linear-gradient(180deg, #0a2a1a 0%, #000 100%);
+      border-radius: 50%;
+      box-shadow:
+        0 0 8px rgba(0, 255, 136, 0.5),
+        inset 0 2px 4px rgba(0, 0, 0, 0.4);
+    }
+
+    @keyframes pet-alien-pulse {
+      0%, 100% {
+        transform: scale(1);
+        box-shadow:
+          0 0 20px rgba(0, 255, 136, 0.4),
+          inset 0 -15px 25px rgba(0, 255, 136, 0.1),
+          inset 0 2px 4px rgba(255, 255, 255, 0.1);
+      }
+      50% {
+        transform: scale(1.03);
+        box-shadow:
+          0 0 35px rgba(0, 255, 136, 0.6),
+          inset 0 -15px 25px rgba(0, 255, 136, 0.2),
+          inset 0 2px 4px rgba(255, 255, 255, 0.15);
+      }
+    }
+
+    @keyframes pet-alien-field {
+      0%, 100% { opacity: 0.4; transform: scale(1); }
+      50% { opacity: 0.8; transform: scale(1.05); }
+    }
+
+    @keyframes pet-alien-scan {
+      0% { transform: translateX(-50%) scaleX(1); opacity: 0.6; }
+      50% { transform: translateX(-50%) scaleX(1.3); opacity: 1; }
+      100% { transform: translateX(-50%) scaleX(1); opacity: 0.6; }
+    }
+
+    /* 8. Pumpkin - jack-o'-lantern with inner glow */
+    #character.pet-pumpkin .character-body {
+      border-radius: 48% 48% 50% 50%;
+      background:
+        radial-gradient(circle at 50% 60%, rgba(255, 160, 50, 0.4) 0%, transparent 50%),
+        linear-gradient(90deg,
+          #cc5500 0%, #e87820 15%,
+          #cc5500 30%, #e87820 45%,
+          #cc5500 55%, #e87820 70%,
+          #cc5500 85%, #e87820 100%
+        );
+      border: 3px solid #b84500;
+      box-shadow:
+        0 8px 20px rgba(232, 120, 32, 0.4),
+        inset 0 -20px 30px rgba(0, 0, 0, 0.3),
+        inset 0 20px 20px rgba(255, 160, 50, 0.2);
+      animation: pet-pumpkin-glow 3s ease-in-out infinite;
+      position: relative;
+    }
+
+    /* Stem */
+    #character.pet-pumpkin .character-body::before {
+      content: '';
+      position: absolute;
+      top: -14px;
+      left: 50%;
+      transform: translateX(-50%) rotate(-5deg);
+      width: 10px;
+      height: 16px;
+      background: linear-gradient(145deg, #3a6a10, #2a5a00);
+      border-radius: 4px 4px 2px 2px;
+      border: 1px solid #2a5a00;
+      box-shadow:
+        2px 0 0 rgba(74, 120, 20, 0.5),
+        0 2px 4px rgba(0, 0, 0, 0.4);
+    }
+
+    /* Carved mouth with glow */
+    #character.pet-pumpkin .character-body::after {
+      content: '';
+      position: absolute;
+      bottom: 20%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 32px;
+      height: 12px;
+      background: linear-gradient(180deg, #ff8800 0%, #ff6600 100%);
+      border-radius: 0 0 50% 50%;
+      box-shadow:
+        0 0 12px rgba(255, 136, 0, 0.8),
+        inset 0 2px 4px rgba(0, 0, 0, 0.6);
+      clip-path: polygon(
+        0% 0%, 15% 50%, 25% 0%,
+        35% 50%, 45% 0%, 55% 50%,
+        65% 0%, 75% 50%, 85% 0%, 100% 0%,
+        100% 100%, 0% 100%
+      );
+      animation: pet-pumpkin-flicker 4s ease-in-out infinite;
+    }
+
+    #character.pet-pumpkin .eye {
+      width: 24px;
+      height: 20px;
+      background: linear-gradient(180deg, #ffcc00 0%, #ff8800 100%);
+      border-radius: 0;
+      clip-path: polygon(50% 0%, 100% 40%, 80% 100%, 20% 100%, 0% 40%);
+      border: none;
+      box-shadow:
+        0 0 12px rgba(255, 200, 0, 0.8),
+        inset 0 2px 6px rgba(0, 0, 0, 0.4);
+      animation: pet-pumpkin-eye-glow 4s ease-in-out infinite;
+    }
+
+    #character.pet-pumpkin .pupil {
+      display: none;
+    }
+
+    @keyframes pet-pumpkin-glow {
+      0%, 100% {
+        box-shadow:
+          0 8px 20px rgba(232, 120, 32, 0.4),
+          inset 0 -20px 30px rgba(0, 0, 0, 0.3),
+          inset 0 20px 20px rgba(255, 160, 50, 0.2);
+      }
+      50% {
+        box-shadow:
+          0 8px 25px rgba(232, 120, 32, 0.6),
+          inset 0 -20px 30px rgba(0, 0, 0, 0.2),
+          inset 0 20px 20px rgba(255, 160, 50, 0.3);
+      }
+    }
+
+    @keyframes pet-pumpkin-flicker {
+      0%, 100% {
+        opacity: 1;
+        filter: brightness(1);
+      }
+      10% { opacity: 0.8; filter: brightness(0.9); }
+      20% { opacity: 1; filter: brightness(1); }
+      50% {
+        opacity: 0.7;
+        filter: brightness(0.85);
+      }
+      60% { opacity: 0.9; filter: brightness(0.95); }
+      70% { opacity: 1; filter: brightness(1); }
+    }
+
+    @keyframes pet-pumpkin-eye-glow {
+      0%, 100% { filter: brightness(1); }
+      50% { filter: brightness(0.8); }
+    }
+
+    /* 9. Cloud - fluffy with weather effects */
+    #character.pet-cloud .character-body {
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 40% 40%, rgba(255, 255, 255, 0.4) 0%, transparent 50%),
+        linear-gradient(145deg, #e8f0f8, #c0d0e8);
+      border: none;
+      box-shadow:
+        -24px 8px 0 -4px rgba(230, 240, 255, 0.9),
+        24px 8px 0 -4px rgba(230, 240, 255, 0.9),
+        -18px 16px 0 -2px rgba(210, 225, 245, 0.8),
+        18px 16px 0 -2px rgba(210, 225, 245, 0.8),
+        0 18px 0 0px rgba(200, 215, 240, 0.85),
+        0 4px 20px rgba(160, 180, 220, 0.4);
+      animation: pet-cloud-drift 7s ease-in-out infinite;
+      position: relative;
+      filter: blur(0.3px);
+    }
+
+    /* Rain drops */
+    #character.pet-cloud .character-body::before {
+      content: '';
+      position: absolute;
+      bottom: -16px;
+      left: 25%;
+      width: 3px;
+      height: 10px;
+      background: linear-gradient(180deg, rgba(100, 140, 200, 0.6) 0%, rgba(100, 140, 200, 0) 100%);
+      border-radius: 50%;
+      box-shadow:
+        10px 2px 0 rgba(100, 140, 200, 0.5),
+        20px 0px 0 rgba(100, 140, 200, 0.4),
+        30px 3px 0 rgba(100, 140, 200, 0.6);
+      animation: pet-cloud-rain 2.5s linear infinite;
+    }
+
+    /* Lightning flash */
+    #character.pet-cloud .character-body::after {
+      content: '';
+      position: absolute;
+      bottom: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 2px;
+      height: 8px;
+      background: rgba(255, 255, 100, 0);
+      box-shadow:
+        0 0 4px rgba(255, 255, 100, 0),
+        1px 4px 0 rgba(255, 255, 100, 0),
+        -1px 8px 0 rgba(255, 255, 100, 0);
+      animation: pet-cloud-lightning 8s ease-in-out infinite;
+    }
+
+    #character.pet-cloud .eye {
+      width: 20px;
+      height: 20px;
+      background: radial-gradient(circle at 35% 35%, #fff 0%, #e0e8f0 100%);
+      border: 2px solid rgba(160, 180, 220, 0.4);
+      box-shadow:
+        inset 0 2px 4px rgba(100, 120, 180, 0.2),
+        0 2px 6px rgba(160, 180, 220, 0.3);
+    }
+
+    #character.pet-cloud .pupil {
+      width: 8px;
+      height: 8px;
+      background: #5a6a88;
+      box-shadow: 0 0 4px rgba(90, 106, 136, 0.4);
+    }
+
+    @keyframes pet-cloud-drift {
+      0%, 100% {
+        transform: translateX(0) translateY(0);
+        filter: blur(0.3px);
+      }
+      25% { transform: translateX(8px) translateY(-3px); }
+      50% {
+        transform: translateX(12px) translateY(0);
+        filter: blur(0.5px);
+      }
+      75% { transform: translateX(8px) translateY(3px); }
+    }
+
+    @keyframes pet-cloud-rain {
+      0% { transform: translateY(0); opacity: 0; }
+      20% { opacity: 0.7; }
+      100% { transform: translateY(16px); opacity: 0; }
+    }
+
+    @keyframes pet-cloud-lightning {
+      0%, 95%, 100% {
+        background: rgba(255, 255, 100, 0);
+        box-shadow:
+          0 0 4px rgba(255, 255, 100, 0),
+          1px 4px 0 rgba(255, 255, 100, 0),
+          -1px 8px 0 rgba(255, 255, 100, 0);
+      }
+      96%, 97% {
+        background: rgba(255, 255, 100, 0.9);
+        box-shadow:
+          0 0 8px rgba(255, 255, 100, 0.9),
+          1px 4px 0 rgba(255, 255, 100, 0.8),
+          -1px 8px 0 rgba(255, 255, 100, 0.7);
+      }
+    }
+
+    /* 10. Octopus - aquatic with tentacles and suction cups */
+    #character.pet-octopus .character-body {
+      border-radius: 52% 52% 40% 40%;
+      background:
+        radial-gradient(circle at 65% 35%, rgba(200, 100, 220, 0.3) 0%, transparent 40%),
+        radial-gradient(circle at 35% 35%, rgba(200, 100, 220, 0.3) 0%, transparent 40%),
+        linear-gradient(135deg, #8a4090, #5a2060);
+      border: 2px solid #b060d0;
+      box-shadow:
+        0 6px 20px rgba(138, 64, 144, 0.4),
+        inset 0 -15px 25px rgba(0, 0, 0, 0.3),
+        inset 0 4px 8px rgba(200, 100, 220, 0.2);
+      animation: pet-octopus-swim 4s ease-in-out infinite;
+      position: relative;
+      overflow: visible;
+    }
+
+    /* Tentacles - front layer */
+    #character.pet-octopus .character-body::before {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 8%;
+      width: 84%;
+      height: 16px;
+      background: repeating-linear-gradient(90deg,
+        #7a3080 0px,
+        #7a3080 10px,
+        transparent 10px,
+        transparent 14px
+      );
+      border-radius: 0 0 8px 8px;
+      box-shadow:
+        0 2px 0 -1px rgba(100, 50, 110, 0.6),
+        0 6px 8px rgba(0, 0, 0, 0.3);
+      animation: pet-tentacle-wave 3s ease-in-out infinite;
+      position: relative;
+    }
+
+    /* Suction cups on tentacles */
+    #character.pet-octopus .character-body::before {
+      box-shadow:
+        0 2px 0 -1px rgba(100, 50, 110, 0.6),
+        0 6px 8px rgba(0, 0, 0, 0.3),
+        12px 8px 0 -2px rgba(180, 100, 190, 0.5),
+        28px 6px 0 -2px rgba(180, 100, 190, 0.5),
+        44px 9px 0 -2px rgba(180, 100, 190, 0.5),
+        60px 7px 0 -2px rgba(180, 100, 190, 0.5);
+    }
+
+    /* Tentacles - back layer */
+    #character.pet-octopus .character-body::after {
+      content: '';
+      position: absolute;
+      bottom: -18px;
+      left: 12%;
+      width: 76%;
+      height: 14px;
+      background: repeating-linear-gradient(90deg,
+        #6a2070 0px,
+        #6a2070 9px,
+        transparent 9px,
+        transparent 13px
+      );
+      border-radius: 0 0 7px 7px;
+      box-shadow:
+        0 4px 6px rgba(0, 0, 0, 0.4),
+        16px 10px 0 -2px rgba(160, 80, 170, 0.5),
+        34px 8px 0 -2px rgba(160, 80, 170, 0.5),
+        52px 11px 0 -2px rgba(160, 80, 170, 0.5);
+      animation: pet-tentacle-wave 3s ease-in-out infinite reverse;
+      animation-delay: 0.3s;
+    }
+
+    /* Water ripple effect */
+    #character.pet-octopus .eyes::before {
+      content: '';
+      position: absolute;
+      top: -40px;
+      left: -45px;
+      width: 130px;
+      height: 100px;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent 0px,
+        rgba(160, 100, 200, 0.05) 8px,
+        transparent 16px
+      );
+      pointer-events: none;
+      animation: pet-octopus-ripple 5s linear infinite;
+      border-radius: 50%;
+    }
+
+    #character.pet-octopus .eye {
+      width: 26px;
+      height: 26px;
+      background: radial-gradient(circle at 35% 35%, #fff 0%, #e8d8f0 100%);
+      border: 2px solid #5a2060;
+      box-shadow:
+        inset 0 2px 4px rgba(0, 0, 0, 0.1),
+        0 0 8px rgba(200, 100, 220, 0.3);
+    }
+
+    #character.pet-octopus .pupil {
+      width: 16px;
+      height: 6px;
+      background: #2a1030;
+      border-radius: 50%;
+      box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
+    }
+
+    @keyframes pet-octopus-swim {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      25% { transform: translateY(-6px) rotate(-1deg); }
+      50% { transform: translateY(-8px) rotate(0deg); }
+      75% { transform: translateY(-6px) rotate(1deg); }
+    }
+
+    @keyframes pet-tentacle-wave {
+      0%, 100% { transform: skewX(0deg) scaleY(1); }
+      25% { transform: skewX(6deg) scaleY(1.05); }
+      50% { transform: skewX(0deg) scaleY(0.95); }
+      75% { transform: skewX(-6deg) scaleY(1.05); }
+    }
+
+    @keyframes pet-octopus-ripple {
+      0% { transform: translateY(0); opacity: 0.3; }
+      100% { transform: translateY(16px); opacity: 0; }
     }
 
     /* Speech Bubble */
@@ -100,19 +1186,24 @@
       right: 20px;
       left: 20px;
       max-width: 380px;
-      background: linear-gradient(145deg, #1a1a2e, #16213e);
-      border: 2px solid #e94560;
+      max-height: calc(100vh - 150px);
+      overflow-y: auto;
+      background: linear-gradient(145deg, var(--color-bg-dark), var(--color-bg-medium));
+      border: 2px solid var(--color-primary);
       border-radius: 12px;
       padding: 12px;
-      color: #e0e0e0;
+      color: var(--color-text);
       font-size: 13px;
       line-height: 1.4;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      box-shadow: var(--shadow);
       opacity: 0;
       transform: translateY(10px) scale(0.95);
       transition: all 0.3s ease;
-      pointer-events: none;
+      pointer-events: auto;
       z-index: 20;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      white-space: normal;
     }
 
     #speech-bubble.visible {
@@ -120,8 +1211,12 @@
       transform: translateY(0) scale(1);
     }
 
+    #speech-bubble.hidden {
+      pointer-events: none;
+    }
+
     #speech-bubble.error {
-      border-color: #ff6b6b;
+      border-color: var(--color-primary-hover);
     }
 
     #speech-bubble::after {
@@ -133,11 +1228,14 @@
       height: 0;
       border-left: 10px solid transparent;
       border-right: 10px solid transparent;
-      border-top: 10px solid #e94560;
+      border-top: 10px solid var(--color-primary);
     }
 
     #speech-text {
       margin: 0;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      white-space: normal;
     }
 
     /* Thinking Indicator */
@@ -145,16 +1243,17 @@
       position: absolute;
       bottom: 130px;
       right: 20px;
-      background: #1a1a2e;
-      border: 1px solid #e94560;
+      background: var(--color-bg-dark);
+      border: 1px solid var(--color-primary);
       border-radius: 10px;
       padding: 6px 12px;
-      color: #e94560;
+      color: var(--color-primary);
       font-size: 11px;
       display: flex;
       align-items: center;
       gap: 6px;
       z-index: 20;
+      pointer-events: auto;
     }
 
     #thinking.hidden {
@@ -169,30 +1268,43 @@
     .dot {
       width: 5px;
       height: 5px;
-      background: #e94560;
+      background: var(--color-primary);
       border-radius: 50%;
       animation: bounce 0.6s ease-in-out infinite;
     }
 
-    .dot:nth-child(2) { animation-delay: 0.1s; }
-    .dot:nth-child(3) { animation-delay: 0.2s; }
-
-    @keyframes bounce {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-3px); }
+    .dot:nth-child(2) {
+      animation-delay: 0.1s;
     }
 
-    /* Context Menu - positioned within app bounds */
+    .dot:nth-child(3) {
+      animation-delay: 0.2s;
+    }
+
+    @keyframes bounce {
+
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-3px);
+      }
+    }
+
+    /* Context Menu */
     #context-menu {
       position: absolute;
-      background: linear-gradient(145deg, #1a1a2e, #16213e);
-      border: 1px solid #2a2a4a;
+      background: linear-gradient(145deg, var(--color-bg-dark), var(--color-bg-medium));
+      border: 1px solid var(--color-border);
       border-radius: 8px;
       padding: 6px 0;
       min-width: 160px;
       max-width: 200px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      box-shadow: var(--shadow-strong);
       z-index: 100;
+      pointer-events: auto;
     }
 
     #context-menu.hidden {
@@ -201,7 +1313,7 @@
 
     .menu-item {
       padding: 8px 14px;
-      color: #e0e0e0;
+      color: var(--color-text);
       cursor: pointer;
       font-size: 12px;
       transition: background 0.2s;
@@ -209,27 +1321,27 @@
     }
 
     .menu-item:hover {
-      background: #2a2a4a;
+      background: var(--color-bg-elevated);
     }
 
     .menu-item.danger {
-      color: #e94560;
+      color: var(--color-primary);
     }
 
     .menu-separator {
       height: 1px;
-      background: #2a2a4a;
+      background: var(--color-border);
       margin: 6px 0;
     }
 
-    /* Settings Modal - fits within window */
+    /* Settings Modal */
     #settings-overlay {
       position: absolute;
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(10, 10, 20, 0.95);
+      background: var(--color-overlay);
       display: flex;
       flex-direction: column;
       opacity: 0;
@@ -243,16 +1355,20 @@
       pointer-events: auto;
     }
 
+    #settings-overlay * {
+      pointer-events: auto;
+    }
+
     #settings-header {
       padding: 16px;
-      border-bottom: 1px solid #2a2a4a;
+      border-bottom: 1px solid var(--color-border);
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
 
     #settings-header h2 {
-      color: #e94560;
+      color: var(--color-primary);
       font-size: 18px;
       margin: 0;
     }
@@ -260,7 +1376,7 @@
     #settings-close {
       background: none;
       border: none;
-      color: #888;
+      color: var(--color-text-muted);
       font-size: 24px;
       cursor: pointer;
       padding: 0;
@@ -273,8 +1389,8 @@
     }
 
     #settings-close:hover {
-      background: #2a2a4a;
-      color: #e0e0e0;
+      background: var(--color-bg-elevated);
+      color: var(--color-text);
     }
 
     #settings-content {
@@ -286,7 +1402,7 @@
     .settings-section {
       margin-bottom: 20px;
       padding-bottom: 16px;
-      border-bottom: 1px solid #1a1a2a;
+      border-bottom: 1px solid var(--color-section-border);
     }
 
     .settings-section:last-child {
@@ -294,7 +1410,7 @@
     }
 
     .settings-section h3 {
-      color: #888;
+      color: var(--color-text-muted);
       font-size: 11px;
       text-transform: uppercase;
       letter-spacing: 1px;
@@ -309,7 +1425,7 @@
     }
 
     .key-row label {
-      color: #e0e0e0;
+      color: var(--color-text);
       font-size: 12px;
     }
 
@@ -320,21 +1436,21 @@
 
     .key-row input {
       flex: 1;
-      background: #0f0f23;
-      border: 1px solid #2a2a4a;
+      background: var(--color-bg-deep);
+      border: 1px solid var(--color-border);
       border-radius: 6px;
       padding: 8px 10px;
-      color: #e0e0e0;
+      color: var(--color-text);
       font-size: 12px;
     }
 
     .key-row input:focus {
       outline: none;
-      border-color: #e94560;
+      border-color: var(--color-primary);
     }
 
     .save-key-btn {
-      background: #e94560;
+      background: var(--color-primary);
       border: none;
       border-radius: 6px;
       padding: 6px 12px;
@@ -345,7 +1461,7 @@
     }
 
     .save-key-btn:hover {
-      background: #ff6b6b;
+      background: var(--color-primary-hover);
     }
 
     .key-status {
@@ -354,11 +1470,11 @@
     }
 
     .key-status.set {
-      color: #00ff88;
+      color: var(--color-success);
     }
 
     .key-status.unset {
-      color: #666;
+      color: var(--color-text-dim);
     }
 
     .select-group {
@@ -367,25 +1483,25 @@
 
     .select-group label {
       display: block;
-      color: #888;
+      color: var(--color-text-muted);
       font-size: 11px;
       margin-bottom: 6px;
     }
 
     .settings-select {
       width: 100%;
-      background: #0f0f23;
-      border: 1px solid #2a2a4a;
+      background: var(--color-bg-deep);
+      border: 1px solid var(--color-border);
       border-radius: 6px;
       padding: 8px 10px;
-      color: #e0e0e0;
+      color: var(--color-text);
       font-size: 12px;
       cursor: pointer;
     }
 
     .settings-select:focus {
       outline: none;
-      border-color: #e94560;
+      border-color: var(--color-primary);
     }
 
     .settings-btn {
@@ -401,21 +1517,21 @@
     }
 
     .settings-btn.primary {
-      background: #e94560;
+      background: var(--color-primary);
       color: white;
     }
 
     .settings-btn.primary:hover {
-      background: #ff6b6b;
+      background: var(--color-primary-hover);
     }
 
     .settings-btn.secondary {
-      background: #2a2a4a;
-      color: #e0e0e0;
+      background: var(--color-bg-elevated);
+      color: var(--color-text);
     }
 
     .settings-btn.secondary:hover {
-      background: #3a3a5a;
+      background: var(--color-bg-hover);
     }
 
     /* Welcome Modal */
@@ -425,7 +1541,7 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(10, 10, 20, 0.98);
+      background: var(--color-overlay-strong);
       display: flex;
       flex-direction: column;
       opacity: 0;
@@ -439,6 +1555,10 @@
       pointer-events: auto;
     }
 
+    #welcome-overlay * {
+      pointer-events: auto;
+    }
+
     #welcome-content {
       flex: 1;
       overflow-y: auto;
@@ -446,27 +1566,27 @@
     }
 
     #welcome-content h1 {
-      color: #e94560;
+      color: var(--color-primary);
       font-size: 22px;
       margin-bottom: 8px;
     }
 
     .tagline {
-      color: #888;
+      color: var(--color-text-muted);
       font-size: 13px;
       margin-bottom: 16px;
     }
 
     .privacy-notice {
-      background: rgba(233, 69, 96, 0.1);
-      border: 1px solid rgba(233, 69, 96, 0.3);
+      background: var(--color-primary-bg);
+      border: 1px solid var(--color-primary-border);
       border-radius: 8px;
       padding: 12px;
       margin-bottom: 16px;
     }
 
     .privacy-notice h3 {
-      color: #e94560;
+      color: var(--color-primary);
       font-size: 12px;
       margin-bottom: 8px;
     }
@@ -474,13 +1594,13 @@
     .privacy-notice ul {
       margin: 0;
       padding-left: 16px;
-      color: #e0e0e0;
+      color: var(--color-text);
       font-size: 11px;
       line-height: 1.7;
     }
 
     .provider-section h3 {
-      color: #888;
+      color: var(--color-text-muted);
       font-size: 11px;
       text-transform: uppercase;
       letter-spacing: 1px;
@@ -495,8 +1615,8 @@
     }
 
     .provider-option {
-      background: #0f0f23;
-      border: 2px solid #2a2a4a;
+      background: var(--color-bg-deep);
+      border: 2px solid var(--color-border);
       border-radius: 8px;
       padding: 10px;
       cursor: pointer;
@@ -504,28 +1624,28 @@
     }
 
     .provider-option:hover {
-      border-color: #e94560;
+      border-color: var(--color-primary);
     }
 
     .provider-option.selected {
-      border-color: #e94560;
-      background: #1a1a3e;
+      border-color: var(--color-primary);
+      background: var(--color-bg-selected);
     }
 
     .provider-option.recommended {
-      border-color: #00ff88;
+      border-color: var(--color-success);
     }
 
     .provider-name {
       font-weight: 600;
-      color: #e0e0e0;
+      color: var(--color-text);
       font-size: 13px;
       margin-bottom: 2px;
     }
 
     .provider-cost {
       font-size: 10px;
-      color: #888;
+      color: var(--color-text-muted);
     }
 
     .api-key-section {
@@ -534,43 +1654,43 @@
 
     .api-key-section input {
       width: 100%;
-      background: #0f0f23;
-      border: 1px solid #2a2a4a;
+      background: var(--color-bg-deep);
+      border: 1px solid var(--color-border);
       border-radius: 6px;
       padding: 10px;
-      color: #e0e0e0;
+      color: var(--color-text);
       font-size: 13px;
       margin-bottom: 6px;
     }
 
     .api-key-section input:focus {
       outline: none;
-      border-color: #e94560;
+      border-color: var(--color-primary);
     }
 
     .api-key-section .hint {
       font-size: 11px;
-      color: #888;
+      color: var(--color-text-muted);
     }
 
     .api-key-section .hint a {
-      color: #e94560;
+      color: var(--color-primary);
     }
 
     .cost-estimate {
-      background: #0f0f23;
+      background: var(--color-bg-deep);
       border-radius: 8px;
       padding: 10px;
       margin-bottom: 16px;
       font-size: 12px;
-      color: #e0e0e0;
+      color: var(--color-text);
     }
 
     .action-buttons {
       display: flex;
       gap: 10px;
       padding: 16px;
-      border-top: 1px solid #2a2a4a;
+      border-top: 1px solid var(--color-border);
     }
 
     .action-buttons button {
@@ -585,27 +1705,27 @@
     }
 
     .action-buttons .primary {
-      background: #e94560;
+      background: var(--color-primary);
       color: white;
     }
 
     .action-buttons .primary:hover:not(:disabled) {
-      background: #ff6b6b;
+      background: var(--color-primary-hover);
     }
 
     .action-buttons .primary:disabled {
-      background: #444;
-      color: #888;
+      background: var(--color-disabled-bg);
+      color: var(--color-disabled-text);
       cursor: not-allowed;
     }
 
     .action-buttons .secondary {
-      background: #2a2a4a;
-      color: #e0e0e0;
+      background: var(--color-bg-elevated);
+      color: var(--color-text);
     }
 
     .action-buttons .secondary:hover {
-      background: #3a3a5a;
+      background: var(--color-bg-hover);
     }
 
     /* Scrollbar styling */
@@ -614,19 +1734,20 @@
     }
 
     ::-webkit-scrollbar-track {
-      background: #0f0f23;
+      background: var(--color-bg-deep);
     }
 
     ::-webkit-scrollbar-thumb {
-      background: #2a2a4a;
+      background: var(--color-bg-elevated);
       border-radius: 3px;
     }
 
     ::-webkit-scrollbar-thumb:hover {
-      background: #3a3a5a;
+      background: var(--color-bg-hover);
     }
   </style>
 </head>
+
 <body>
   <div id="app">
     <!-- Speech Bubble -->
@@ -645,11 +1766,15 @@
     </div>
 
     <!-- Character -->
-    <div id="character">
+    <div id="character" class="pet-default">
       <div class="character-body">
         <div class="eyes">
-          <div class="eye"><div class="pupil"></div></div>
-          <div class="eye"><div class="pupil"></div></div>
+          <div class="eye">
+            <div class="pupil"></div>
+          </div>
+          <div class="eye">
+            <div class="pupil"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -705,9 +1830,34 @@
         </div>
 
         <div class="settings-section">
+          <h3>Mood</h3>
+          <div class="select-group">
+            <label>Personality</label>
+            <select class="settings-select" id="mood-select"></select>
+          </div>
+          <div id="custom-mood-section" style="display: none; margin-top: 12px;">
+            <label style="display: block; color: var(--color-text-muted); font-size: 11px; margin-bottom: 6px;">Custom Prompt</label>
+            <textarea id="custom-mood-input" class="settings-select" style="height: 120px; resize: vertical; font-family: monospace; font-size: 11px; line-height: 1.4; padding: 10px;" placeholder="Describe how you want the assistant to behave..."></textarea>
+            <button class="settings-btn secondary" id="improve-mood-btn" style="margin-top: 8px;">✨ Improve with AI</button>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>Pet Style</h3>
+          <div class="select-group">
+            <label>Character</label>
+            <select class="settings-select" id="pet-style-select"></select>
+          </div>
+        </div>
+
+        <div class="settings-section">
           <h3>History</h3>
           <button class="settings-btn secondary" id="clear-history-btn">Clear History</button>
         </div>
+      </div>
+      <div style="padding: 12px 16px; border-top: 1px solid var(--color-border); flex-shrink: 0;">
+        <button class="settings-btn primary" id="settings-save" style="width: 100%; font-size: 14px; padding: 12px;">💾
+          Save Settings</button>
       </div>
     </div>
 
@@ -753,4 +1903,5 @@
 
   <script type="module" src="./main.ts"></script>
 </body>
+
 </html>

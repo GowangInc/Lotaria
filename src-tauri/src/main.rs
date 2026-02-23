@@ -1,7 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use lotaria::{commands::*, state::StateManager};
-use tauri::{Manager, WebviewUrl, WebviewWindowBuilder, Emitter};
+use tauri::{Manager, WebviewUrl, WebviewWindowBuilder, Emitter, window::Color};
 
 fn main() {
     // Set up panic hook to see errors
@@ -12,8 +12,22 @@ fn main() {
         tracing::error!("{}", msg);
     }));
     
-    // Initialize tracing
-    tracing_subscriber::fmt::init();
+    // Initialize tracing with file logging
+    let log_path = dirs::cache_dir()
+        .unwrap_or_else(|| std::path::PathBuf::from("."))
+        .join("lotaria")
+        .join("app.log");
+    
+    let log_file = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&log_path)
+        .unwrap_or_else(|_| std::fs::File::create("lotaria.log").unwrap());
+    
+    tracing_subscriber::fmt()
+        .with_writer(move || log_file.try_clone().unwrap())
+        .with_ansi(false)
+        .init();
     
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
@@ -53,17 +67,19 @@ fn main() {
             tracing::info!("AppState managed");
 
             // Create main window - start visible immediately
-            let window = match WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
+            let _window = match WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
                 .title("Lotaria")
                 .inner_size(420.0, 400.0)
                 .decorations(false)
                 .transparent(true)
+                .shadow(false)
                 .always_on_top(true)
                 .resizable(true)
                 .skip_taskbar(false)
                 .visible(true)
-                .center()  // Center on primary monitor (safer than calculating position)
-                .build() 
+                .center()
+                .background_color(Color(0, 0, 0, 0))
+                .build()
             {
                 Ok(w) => {
                     tracing::info!("Window created successfully");
@@ -115,7 +131,10 @@ fn main() {
             get_history,
             mark_first_run_complete,
             get_moods,
+            improve_mood,
             quit,
+            get_cursor_position,
+            get_accent_color,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -87,13 +87,14 @@ pub async fn set_config(
         "is_active" => config.is_active = value.as_bool().unwrap_or(false),
         "interval" => config.interval = value.as_str().unwrap_or("frequent").to_string(),
         "vision_provider" => config.vision_provider = value.as_str().unwrap_or("gemini").to_string(),
-        "vision_model" => config.vision_model = value.as_str().unwrap_or("gemini-2.0-flash").to_string(),
+        "vision_model" => config.vision_model = value.as_str().unwrap_or("gemini-2.5-flash").to_string(),
         "tts_provider" => config.tts_provider = value.as_str().unwrap_or("gemini").to_string(),
-        "tts_model" => config.tts_model = value.as_str().unwrap_or("gemini-2.5-flash-live").to_string(),
+        "tts_model" => config.tts_model = value.as_str().unwrap_or("gemini-2.5-flash-preview-tts").to_string(),
         "tts_voice" => config.tts_voice = value.as_str().unwrap_or("Kore").to_string(),
         "speech_bubble_enabled" => config.speech_bubble_enabled = value.as_bool().unwrap_or(true),
         "audio_enabled" => config.audio_enabled = value.as_bool().unwrap_or(true),
         "mood" => config.mood = value.as_str().unwrap_or("roast").to_string(),
+        "custom_mood" => config.custom_mood = value.as_str().unwrap_or("").to_string(),
         "pet_style" => config.pet_style = value.as_str().unwrap_or("default").to_string(),
         "gemini_free_tier" => config.gemini_free_tier = value.as_bool().unwrap_or(true),
         "first_run" => config.first_run = value.as_bool().unwrap_or(false),
@@ -139,7 +140,7 @@ pub async fn roast_now(
 
     // Build prompt
     let history = state.history.read().await;
-    let prompt = state.state_manager.build_prompt(&config.mood, &history);
+    let prompt = state.state_manager.build_prompt(&config, &history);
     drop(history);
 
     // Analyze with vision service
@@ -172,7 +173,7 @@ pub async fn roast_now(
 
     // TTS
     let mut audio_base64 = None;
-    let mut audio_duration = 0.0;
+    let audio_duration;
 
     if config.audio_enabled {
         let tts_provider_def = ProviderDef::get(&config.tts_provider)
@@ -195,9 +196,6 @@ pub async fn roast_now(
 
         match tts_service.synthesize(&analysis).await {
             Ok(audio_bytes) => {
-                let word_count = analysis.split_whitespace().count();
-                audio_duration = (word_count as f64 / 150.0) * 60.0;
-
                 let _ = tts::AudioPlayer::play_async(audio_bytes.clone());
                 audio_base64 = Some(b64_encode(&audio_bytes));
             }
@@ -206,6 +204,10 @@ pub async fn roast_now(
             }
         }
     }
+
+    // Always compute display duration from text, regardless of TTS success
+    let word_count = analysis.split_whitespace().count();
+    audio_duration = (word_count as f64 / 150.0) * 60.0;
 
     Ok(RoastResult {
         text: analysis,
@@ -327,11 +329,121 @@ pub fn get_moods() -> Vec<(String, String)> {
         .collect()
 }
 
+/// Improve custom mood with AI
+#[tauri::command]
+pub async fn improve_mood(
+    mood_text: String,
+    state: State<'_, AppState>
+) -> Result<String, String> {
+    let config = state.config.read().await.clone();
+
+    // Get vision API key
+    let vision_provider_def = ProviderDef::get(&config.vision_provider)
+        .ok_or_else(|| "Invalid vision provider".to_string())?;
+
+    let vision_api_key = config.api_keys.get(&config.vision_provider)
+        .cloned()
+        .or_else(|| std::env::var(&vision_provider_def.env_var).ok())
+        .ok_or_else(|| "Vision API key not set".to_string())?;
+
+    // Create vision service
+    let vision_service = create_vision_service(
+        &config.vision_provider,
+        vision_api_key,
+        config.vision_model.clone()
+    );
+
+    // Build improvement prompt
+    let improvement_prompt = format!(
+        r#"You are an expert at writing system prompts for AI assistants. The user has written this custom mood/personality prompt for a desktop pet that roasts them:
+
+"{}"
+
+Your task: Improve this prompt to make it more effective, specific, and entertaining. Follow these guidelines:
+- Make it clear, actionable, and specific about the desired tone and behavior
+- Add constraints (character limits, format requirements, etc.) if missing
+- Ensure it instructs the AI to analyze the FULL context (apps, time, tabs, etc.)
+- Make it more vivid and personality-driven
+- Keep the core intent but enhance the execution
+- Keep it under 500 characters for the final output
+
+Return ONLY the improved prompt text, no explanations or meta-commentary."#,
+        mood_text
+    );
+
+    // Call vision API (no image needed for text improvement)
+    match vision_service.analyze("", &improvement_prompt).await {
+        Ok(improved) => Ok(truncate_response(&improved, 800)),
+        Err(e) => Err(format!("Failed to improve mood: {}", e)),
+    }
+}
+
 /// Quit the app
 #[tauri::command]
 pub fn quit(app_handle: AppHandle) {
     tracing::info!("Quitting app");
     app_handle.exit(0);
+}
+
+/// Get global cursor position (Windows FFI)
+#[tauri::command]
+pub fn get_cursor_position() -> Result<(i32, i32), String> {
+    #[cfg(target_os = "windows")]
+    {
+        use std::mem::MaybeUninit;
+
+        #[repr(C)]
+        struct POINT {
+            x: i32,
+            y: i32,
+        }
+
+        extern "system" {
+            fn GetCursorPos(lpPoint: *mut POINT) -> i32;
+        }
+
+        let mut point = MaybeUninit::<POINT>::uninit();
+        let result = unsafe { GetCursorPos(point.as_mut_ptr()) };
+        if result != 0 {
+            let point = unsafe { point.assume_init() };
+            Ok((point.x, point.y))
+        } else {
+            Err("GetCursorPos failed".to_string())
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        Err("get_cursor_position is only supported on Windows".to_string())
+    }
+}
+
+/// Get Windows accent color via DwmGetColorizationColor
+#[tauri::command]
+pub fn get_accent_color() -> Result<String, String> {
+    #[cfg(target_os = "windows")]
+    {
+        extern "system" {
+            fn DwmGetColorizationColor(pcrColorization: *mut u32, pfOpaqueBlend: *mut i32) -> i32;
+        }
+
+        let mut color: u32 = 0;
+        let mut opaque: i32 = 0;
+        let hr = unsafe { DwmGetColorizationColor(&mut color, &mut opaque) };
+        if hr >= 0 {
+            let r = (color >> 16) & 0xFF;
+            let g = (color >> 8) & 0xFF;
+            let b = color & 0xFF;
+            Ok(format!("#{:02x}{:02x}{:02x}", r, g, b))
+        } else {
+            Err("DwmGetColorizationColor failed".to_string())
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        Ok("#e94560".to_string())
+    }
 }
 
 fn b64_encode(input: &[u8]) -> String {

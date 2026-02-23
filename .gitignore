@@ -26,3 +26,11 @@ Thumbs.db
 .temp/
 .models/
 .env
+
+# Python (legacy, not used anymore)
+.venv/
+__pycache__/
+*.pyc
+
+# Website (deployed separately to Cloudflare Pages)
+website/

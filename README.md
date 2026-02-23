@@ -16,10 +16,15 @@ A desktop pet that watches your screen and roasts you — rebuilt with **Tauri +
 
 - **Screen-aware roasts** — captures screen and generates context-specific commentary
 - **Multi-provider AI** — Gemini (recommended), OpenAI, Anthropic, Groq, DeepSeek
-- **Neural TTS** — Gemini Live API (free unlimited tier) or OpenAI TTS
+- **Premium TTS** — Gemini TTS (free), OpenAI, Murf AI, ElevenLabs, Inworld AI
+- **Custom moods** — roast, helpful, encouraging, sarcastic, or create your own with AI improvement
+- **10 pet designs** — cat, ghost, robot, blob, owl, alien, pumpkin, cloud, octopus, or classic box
+- **Smooth animations** — avatar collapses during screenshot, expands on return
+- **Context memory** — remembers past roasts to call out patterns
 - **Tiny footprint** — entire app under 15MB
-- **Cross-platform** — Windows, macOS, Linux
+- **Cross-platform** — Windows, macOS, Linux (Windows only for now)
 - **Native performance** — Rust backend with Web frontend
+- **Privacy first** — auto-delete screenshots after 24h, pause anytime
 
 ## Prerequisites
 
@@ -61,22 +66,26 @@ lotaria/
 │   ├── src/
 │   │   ├── main.rs      # Entry point
 │   │   ├── lib.rs       # Module exports
-│   │   ├── state.rs     # Config, history, providers
+│   │   ├── state.rs     # Config, history, providers, moods
 │   │   ├── capture.rs   # Screen capture (xcap)
 │   │   ├── vision.rs    # Vision API clients
 │   │   ├── tts.rs       # TTS API clients + audio
-│   │   └── commands.rs  # Tauri commands
+│   │   └── commands.rs  # Tauri commands (roast, improve_mood)
 │   ├── capabilities/    # Tauri 2.0 capabilities
 │   ├── icons/           # App icons
 │   ├── Cargo.toml
 │   └── tauri.conf.json
 ├── src/                 # Frontend
-│   ├── index.html       # UI
+│   ├── index.html       # UI (10 pet styles, custom mood UI)
 │   └── main.ts          # TypeScript app logic
+├── website/             # Landing page (gitignored)
+│   ├── index.html       # Single-page marketing site
+│   └── README.md        # Cloudflare Pages deployment
 ├── dist/                # Built frontend (generated)
 ├── package.json
 ├── vite.config.ts
 ├── tsconfig.json
+├── CLAUDE.md            # Developer guide
 └── README.md
 ```
 
@@ -94,13 +103,52 @@ lotaria/
 
 ## Supported Providers
 
-| Provider | Vision | TTS | Notes |
-|----------|--------|-----|-------|
-| **Google Gemini** | ✅ | ✅ | **Recommended** - Free tier, unlimited Live TTS |
-| **OpenAI** | ✅ | ✅ | gpt-4o, tts-1 |
-| **Anthropic Claude** | ✅ | ❌ | Requires separate TTS provider |
-| **Groq** | ✅ | ❌ | Very fast inference |
-| **DeepSeek** | ✅ | ❌ | Cheapest option |
+### Vision + TTS (All-in-one)
+| Provider | Cost | Notes |
+|----------|------|-------|
+| **Google Gemini** ⭐ | FREE | 30 voices, vision + TTS included |
+| **OpenAI** | $$ | 11 voices, gpt-4o + TTS |
+
+### Vision Only (Need separate TTS)
+| Provider | Cost | Notes |
+|----------|------|-------|
+| **DeepSeek** | $ | Cheapest vision (~$0.21/mo) |
+| **Groq** | $ | Fastest inference (~$1-2.50/mo) |
+| **Anthropic Claude** | $$$ | Sonnet/Opus models (~$2.70/mo) |
+
+### TTS Only (Need separate vision)
+| Provider | Cost | Notes |
+|----------|------|-------|
+| **Inworld AI** | $ | Cheapest TTS ($5-10/M chars), 7 voices |
+| **ElevenLabs** | $$$ | Premium voices, free 10k chars/mo |
+| **Murf AI** | $$$$ | Studio quality ($26/mo), Falcon/Gen2 |
+
+## Custom Moods
+
+Create your own personality prompts:
+
+1. Open **Settings → Mood**
+2. Select **"Custom"** from dropdown
+3. Write your custom prompt (or start with a basic idea)
+4. Click **"✨ Improve with AI"** to enhance your prompt
+5. Save and enjoy your personalized roasts
+
+Built-in moods: roast (savage), helpful (productivity coach), encouraging (cheerleader), sarcastic (dry wit).
+
+## Pet Styles
+
+Choose from 10 uniquely animated designs in Settings:
+
+- **📺 Retro Computer** - CRT scanlines, power LED, screen flicker
+- **🐱 Cat** - Fuzzy with whiskers, ear twitches, slit pupils, breathing
+- **👻 Ghost** - Ethereal glow, flowing trail, spooky mouth, floating
+- **🤖 Robot** - Mechanical panels, rivets, beeping antenna, processing
+- **🫧 Blob** - Gooey drips, morphing shape, color shifts, jiggling
+- **🦉 Owl** - Feather patterns, ear tufts, wise blinking, hooting
+- **👽 Alien** - Energy field, pulsing glow, scanning antenna, otherworldly
+- **🎃 Pumpkin** - Carved face, inner glow, flickering candle, stem
+- **☁️ Cloud** - Fluffy puffs, rain drops, lightning flash, drifting
+- **🐙 Octopus** - Wavy tentacles, suction cups, water ripples, swimming
 
 ## Configuration
 
@@ -110,6 +158,17 @@ Configuration is stored in:
 - **Linux**: `~/.config/lotaria/config.json`
 
 Temporary files (screenshots, audio) are stored in cache directories and auto-cleaned after 24 hours.
+
+## Website
+
+A landing page is available in `website/` (gitignored). Deploy to Cloudflare Pages:
+
+```bash
+cd website/
+# Drag and drop index.html to pages.cloudflare.com
+```
+
+See `website/README.md` for deployment instructions.
 
 ## Architecture
 

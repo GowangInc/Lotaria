@@ -39,12 +39,34 @@ pub static PROVIDER_DEFINITIONS: &[ProviderDefStatic] = &[
         name: "Google Gemini (Recommended)",
         env_var: "GEMINI_API_KEY",
         docs_url: "https://aistudio.google.com/app/apikey",
-        vision_models: &["gemini-2.0-flash", "gemini-2.5-flash", "gemini-2.5-pro"],
-        tts_models: &["gemini-2.5-flash-live", "gemini-2.5-flash-preview-tts"],
-        tts_voices: &["Puck", "Charon", "Kore", "Fenrir", "Aoede", "Alloy", "Echo", "Fable", "Onyx", "Nova", "Shimmer"],
+        vision_models: &[
+            // Gemini 3 series (preview)
+            "gemini-3.1-pro-preview",
+            "gemini-3-flash-preview",
+            "gemini-3-pro-preview",
+            // Gemini 2.5 series (stable)
+            "gemini-2.5-flash",
+            "gemini-2.5-pro",
+            "gemini-2.5-flash-lite",
+            // Gemini 2.0 series (deprecated June 2026)
+            "gemini-2.0-flash",
+            "gemini-2.0-flash-lite",
+        ],
+        tts_models: &[
+            "gemini-2.5-flash-preview-tts",
+            "gemini-2.5-pro-preview-tts",
+            "gemini-2.5-flash-lite-preview-tts",
+        ],
+        tts_voices: &[
+            "Kore", "Charon", "Puck", "Fenrir", "Aoede", "Leda", "Orus", "Zephyr",
+            "Achernar", "Achird", "Algenib", "Algieba", "Alnilam", "Autonoe",
+            "Callirrhoe", "Despina", "Enceladus", "Erinome", "Gacrux", "Iapetus",
+            "Laomedeia", "Pulcherrima", "Rasalgethi", "Sadachbia", "Sadaltager",
+            "Schedar", "Sulafat", "Umbriel", "Vindemiatrix", "Zubenelgenubi",
+        ],
         live_voices: &["Puck", "Charon", "Kore", "Fenrir", "Aoede"],
         recommended: true,
-        cost_note: "FREE tier (Live TTS: unlimited)",
+        cost_note: "FREE — vision + TTS included",
         requires_tts_provider: false,
     },
     ProviderDefStatic {
@@ -52,12 +74,20 @@ pub static PROVIDER_DEFINITIONS: &[ProviderDefStatic] = &[
         name: "OpenAI",
         env_var: "OPENAI_API_KEY",
         docs_url: "https://platform.openai.com/api-keys",
-        vision_models: &["gpt-4o-mini", "gpt-4o"],
-        tts_models: &["tts-1", "tts-1-hd"],
-        tts_voices: &["alloy", "echo", "fable", "onyx", "nova", "shimmer"],
+        vision_models: &[
+            "gpt-4.1-mini",
+            "gpt-4.1",
+            "gpt-4.1-nano",
+            "gpt-4o-mini",
+            "gpt-4o",
+            "o4-mini",
+            "o3",
+        ],
+        tts_models: &["gpt-4o-mini-tts", "tts-1", "tts-1-hd"],
+        tts_voices: &["alloy", "ash", "ballad", "coral", "echo", "fable", "onyx", "nova", "sage", "shimmer", "verse"],
         live_voices: &[],
         recommended: false,
-        cost_note: "~$1.50-5/month",
+        cost_note: "$$ — ~$1.50-5/mo (vision + TTS)",
         requires_tts_provider: false,
     },
     ProviderDefStatic {
@@ -65,12 +95,16 @@ pub static PROVIDER_DEFINITIONS: &[ProviderDefStatic] = &[
         name: "Groq (Fastest)",
         env_var: "GROQ_API_KEY",
         docs_url: "https://console.groq.com/keys",
-        vision_models: &["llama-3.1-8b-instant", "llama-3.1-70b-versatile"],
+        vision_models: &[
+            "llama-4-scout-17b-16e-instruct",
+            "llama-3.2-90b-vision-preview",
+            "llama-3.2-11b-vision-preview",
+        ],
         tts_models: &[],
         tts_voices: &[],
         live_voices: &[],
         recommended: false,
-        cost_note: "~$1-2.50/month + TTS",
+        cost_note: "$ — ~$1-2.50/mo (vision only, needs TTS)",
         requires_tts_provider: true,
     },
     ProviderDefStatic {
@@ -78,26 +112,80 @@ pub static PROVIDER_DEFINITIONS: &[ProviderDefStatic] = &[
         name: "Anthropic Claude",
         env_var: "ANTHROPIC_API_KEY",
         docs_url: "https://console.anthropic.com/settings/keys",
-        vision_models: &["claude-sonnet-4-20250514"],
+        vision_models: &[
+            "claude-sonnet-4-20250514",
+            "claude-opus-4-20250514",
+            "claude-3.5-sonnet-20241022",
+            "claude-3-5-haiku-20241022",
+        ],
         tts_models: &[],
         tts_voices: &[],
         live_voices: &[],
         recommended: false,
-        cost_note: "~$2.70/month + TTS",
+        cost_note: "$$$ — ~$2.70/mo (vision only, needs TTS)",
         requires_tts_provider: true,
     },
     ProviderDefStatic {
         key: "deepseek",
-        name: "DeepSeek (Cheapest)",
+        name: "DeepSeek (Text Only)",
         env_var: "DEEPSEEK_API_KEY",
         docs_url: "https://platform.deepseek.com/api_keys",
-        vision_models: &["deepseek-vl"],
+        vision_models: &[],  // deepseek-chat is text-only, VL models not on public API
         tts_models: &[],
         tts_voices: &[],
         live_voices: &[],
         recommended: false,
-        cost_note: "~$0.21/month + TTS",
+        cost_note: "$ — ~$0.21/mo (NO vision support)",
         requires_tts_provider: true,
+    },
+    ProviderDefStatic {
+        key: "murf",
+        name: "Murf AI (TTS)",
+        env_var: "MURF_API_KEY",
+        docs_url: "https://murf.ai/api",
+        vision_models: &[],
+        tts_models: &["Falcon", "Gen2"],
+        tts_voices: &[
+            "en-US-natalie", "en-US-amara", "en-US-marcus", "en-US-nate",
+            "en-US-carter", "en-US-phoebe", "en-US-terrell",
+            "en-UK-ruby", "en-UK-hazel", "en-UK-gabriel",
+            "en-UK-theo", "en-UK-mason",
+        ],
+        live_voices: &[],
+        recommended: false,
+        cost_note: "$$$$ — ~$26/mo (TTS only)",
+        requires_tts_provider: false,
+    },
+    ProviderDefStatic {
+        key: "elevenlabs",
+        name: "ElevenLabs (TTS)",
+        env_var: "ELEVENLABS_API_KEY",
+        docs_url: "https://elevenlabs.io/app/settings/api-keys",
+        vision_models: &[],
+        tts_models: &["eleven_multilingual_v2", "eleven_flash_v2_5", "eleven_turbo_v2_5"],
+        tts_voices: &[
+            "Rachel", "Domi", "Bella", "Antoni", "Elli",
+            "Josh", "Arnold", "Adam", "Sam",
+        ],
+        live_voices: &[],
+        recommended: false,
+        cost_note: "$$$ — Free 10k chars, then ~$5/mo+",
+        requires_tts_provider: false,
+    },
+    ProviderDefStatic {
+        key: "inworld",
+        name: "Inworld AI (TTS)",
+        env_var: "INWORLD_API_KEY",
+        docs_url: "https://docs.inworld.ai/docs/introduction",
+        vision_models: &[],
+        tts_models: &["tts-1.5-mini", "tts-1.5-max"],
+        tts_voices: &[
+            "Sarah", "Mark", "Hana", "Blake", "Clive", "Luna", "Hades",
+        ],
+        live_voices: &[],
+        recommended: false,
+        cost_note: "$ — $5-10/M chars (cheapest TTS)",
+        requires_tts_provider: false,
     },
 ];
 
@@ -154,6 +242,8 @@ pub struct Config {
     #[serde(default = "default_first_run")]
     pub first_run: bool,
     pub mood: String,
+    #[serde(default)]
+    pub custom_mood: String,
     pub pet_style: String,
     #[serde(default = "default_gemini_free_tier")]
     pub gemini_free_tier: bool,
@@ -173,15 +263,16 @@ impl Default for Config {
             is_active: false,
             interval: "frequent".to_string(),
             vision_provider: "gemini".to_string(),
-            vision_model: "gemini-2.0-flash".to_string(),
+            vision_model: "gemini-2.5-flash".to_string(),
             tts_provider: "gemini".to_string(),
-            tts_model: "gemini-2.5-flash-live".to_string(),
+            tts_model: "gemini-2.5-flash-preview-tts".to_string(),
             tts_voice: "Kore".to_string(),
             api_keys: HashMap::new(),
             speech_bubble_enabled: true,
             audio_enabled: true,
             first_run: true,
             mood: "roast".to_string(),
+            custom_mood: String::new(),
             pet_style: "default".to_string(),
             gemini_free_tier: true,
         }
@@ -199,87 +290,109 @@ pub type History = Vec<HistoryEntry>;
 
 /// Mood prompts for generating roasts
 pub const MOOD_PROMPTS: &[(&str, &str)] = &[
-    ("roast", r#"You are a savage comedy roaster. Look at this screenshot and absolutely demolish the user.
+    ("roast", r#"You are a savage comedy roaster performing at someone's personal roast. Look at this screenshot and DESTROY them.
 
 Rules:
-- Be BRUTAL and SPECIFIC about what you see - call out exact apps, tabs, content, time of day
-- Mock their life choices, productivity (or lack thereof), and what this says about them as a person
+- Look at the FULL PICTURE: what apps are open, what they're browsing, time of day, desktop clutter, tab count — paint a portrait of who this person IS
+- Connect the dots: if they have 47 tabs open at 2am browsing Reddit while a deadline looms in another tab, that's comedy GOLD
+- Roast their life trajectory based on what you see, not just individual elements
 - Channel the energy of a comedy roast - think Nikki Glaser or Anthony Jeselnik
+- If previous observations exist, notice PATTERNS (e.g., "still here 3 hours later doing the same thing?")
 - 2-3 sentences max, every word should sting
 - No softening or "just kidding" - commit to the bit
-- If you notice changes from previous activity, CALL IT OUT
 - Keep your response under 500 characters"#),
 
-    ("helpful", r#"You are a sharp productivity coach. Look at this screenshot and give the user one actionable tip.
+    ("helpful", r#"You are a sharp productivity coach who sees the big picture. Look at this screenshot and give insight.
 
 Rules:
-- Be SPECIFIC about what you see on screen - reference exact apps, tabs, workflows
-- Give ONE concrete, immediately actionable suggestion to improve their workflow
+- Assess their OVERALL workflow: what are they actually trying to accomplish? Are they doing it efficiently?
+- Consider: tab hygiene, app switching patterns, focus indicators, time management
+- Give ONE concrete, immediately actionable suggestion that addresses a PATTERN, not just what's on screen
+- If they've been doing the same thing across multiple observations, address that
 - Be direct and practical, not preachy
 - 2-3 sentences max
 - Keep your response under 500 characters"#),
 
-    ("encouraging", r#"You are an enthusiastic cheerleader. Look at this screenshot and hype the user up.
+    ("encouraging", r#"You are an enthusiastic cheerleader who notices the big wins. Look at this screenshot and hype the user up.
 
 Rules:
-- Be SPECIFIC about what you see - call out exact work, apps, progress
-- Find something genuinely positive and amplify it
-- Be authentic, not generic
+- See the BIGGER story: what are they working towards? What does their setup tell you about their ambitions?
+- Celebrate progress, effort, and dedication — not just surface activity
+- If you see patterns across observations, acknowledge growth or persistence
+- Be authentic, not generic — reference specific things that show real effort
 - 2-3 sentences max, high energy
 - Keep your response under 500 characters"#),
 
-    ("sarcastic", r#"You are a master of dry wit and deadpan observations. Look at this screenshot and comment.
+    ("sarcastic", r#"You are a master of dry wit and deadpan observations. Look at this screenshot and read them to filth with subtlety.
 
 Rules:
-- Be SPECIFIC about what you see - reference exact apps, tabs, content
+- See the IRONY in the big picture: the gap between what they're doing and what they should be doing
 - Deliver observations with bone-dry sarcasm and understated irony
-- Think British comedy - subtle, clever, understated devastation
+- Think British comedy — Oscar Wilde, Blackadder — subtle, clever, understated devastation
+- Notice contradictions: a to-do app open alongside Netflix, time management articles at 3am
 - 2-3 sentences max, every word precisely placed
 - Keep your response under 500 characters"#),
 
-    ("zen", r#"You are a calm, philosophical observer. Look at this screenshot and offer perspective.
+    ("zen", r#"You are a calm, philosophical observer seeing the bigger pattern of digital life. Look at this screenshot and offer perspective.
 
 Rules:
-- Be SPECIFIC about what you see, but frame it through a philosophical lens
-- Offer a gentle, contemplative observation about their digital life
-- Think Marcus Aurelius meets modern tech - find meaning in the mundane
+- See past the individual apps to the HUMAN behind the screen: what are they seeking? What drives them?
+- Frame the mundane through a philosophical lens — find meaning in the digital chaos
+- If you see patterns across observations, reflect on cycles and impermanence
+- Think Marcus Aurelius meets modern tech — wisdom for the scroll-addicted
 - 2-3 sentences max, measured and thoughtful
 - Keep your response under 500 characters"#),
 
-    ("anime", r#"You are an over-the-top anime narrator. Look at this screenshot and narrate dramatically.
+    ("anime", r#"You are an over-the-top anime narrator witnessing destiny unfold on screen. Look at this screenshot and narrate DRAMATICALLY.
 
 Rules:
-- Be SPECIFIC about what you see - reference exact apps, tabs, content
-- Narrate as if this is the most dramatic moment in an anime - inner monologues, power reveals
+- Read the WHOLE screen as if it's a pivotal scene in an epic — what's the protagonist's arc?
+- Every element tells a story: their cursor position is strategic, their tab count is their power level
 - Use anime tropes: "Could it be?!", "This power...", "Impossible!", dramatic ellipses...
+- If previous observations exist, treat it as character development across episodes
 - 2-3 sentences max, maximum dramatic energy
 - Keep your response under 500 characters"#),
 
-    ("gordon", r#"You are Gordon Ramsay watching someone's screen. Look at this screenshot and react.
+    ("gordon", r#"You are Gordon Ramsay witnessing someone's entire digital life. Look at this screenshot and LOSE IT.
 
 Rules:
-- Be SPECIFIC about what you see - call out exact apps, tabs, content
-- Channel peak Kitchen Nightmares energy - passionate, incredulous, dramatic
-- Mix genuine critique with theatrical outrage
+- Judge their WHOLE setup: desktop organization, app choices, workflow efficiency — it's a kitchen inspection
+- Mix genuine critique with theatrical outrage — "You call this a workflow?!"
+- Channel peak Kitchen Nightmares: passionate, incredulous, but with an underlying desire to FIX things
+- If previous observations show no improvement, CALL IT OUT
 - 2-3 sentences max, every word dripping with disbelief
 - Keep your response under 500 characters"#),
 
-    ("therapist", r#"You are a gentle therapist observing the user's screen habits. Look at this screenshot and ask a probing question.
+    ("therapist", r#"You are a gentle therapist who reads between the lines of screen behavior. Look at this screenshot and probe deeper.
 
 Rules:
-- Be SPECIFIC about what you see - reference exact apps, tabs, content
-- Ask ONE thoughtful question about what their screen activity says about them
-- Be warm but incisive - the question should make them think
+- See the PATTERNS: what does their entire screen setup reveal about their emotional state?
+- Read between the lines: why are they doing what they're doing? What are they avoiding?
+- Ask ONE thoughtful question that connects their screen activity to a deeper truth about themselves
+- If you see patterns across observations, gently point out cycles
+- Be warm but incisive — the question should make them think for hours
 - 2-3 sentences max, ending with a question
 - Keep your response under 500 characters"#),
 
-    ("hype", r#"You are the world's most enthusiastic hype person. Look at this screenshot and LOSE YOUR MIND.
+    ("hype", r#"You are the world's most enthusiastic hype person seeing someone at peak performance. Look at this screenshot and LOSE YOUR MIND.
 
 Rules:
-- Be SPECIFIC about what you see - call out exact apps, tabs, content
+- See their WHOLE digital presence as absolutely LEGENDARY — every open app is a power move
+- Connect the dots: their workflow, their tools, their browsing — it all tells the story of a CHAMPION
 - Everything is THE MOST INCREDIBLE THING YOU'VE EVER SEEN
-- ALL CAPS energy even without all caps - exclamation marks, superlatives, awe
-- 2-3 sentences max, pure unbridled excitement
+- If previous observations exist, they show a HERO'S JOURNEY
+- 2-3 sentences max, pure unbridled excitement and awe
+- Keep your response under 500 characters"#),
+
+    ("detective", r#"You are Sherlock Holmes deducing everything about a person from their screen. Look at this screenshot and make brilliant deductions.
+
+Rules:
+- DEDUCE their entire life from what you see: profession, habits, personality, current emotional state
+- "From the arrangement of tabs I can deduce...", "The cursor position suggests...", "Elementary..."
+- Connect multiple clues to build a profile: time of day + apps open + content = a story
+- Be specific and eerily accurate — the best deductions are uncomfortably true
+- If you see patterns across observations, build a case file
+- 2-3 sentences max, delivered with cold precision
 - Keep your response under 500 characters"#),
 ];
 
@@ -326,7 +439,43 @@ impl StateManager {
         let path = self.config_path();
         if path.exists() {
             let content = fs::read_to_string(&path)?;
-            let config: Config = serde_json::from_str(&content)?;
+            let mut config: Config = serde_json::from_str(&content)?;
+
+            let mut needs_save = false;
+
+            // Migrate deprecated vision model
+            if config.vision_model == "gemini-2.0-flash" {
+                info!("Migrating deprecated gemini-2.0-flash to gemini-2.5-flash");
+                config.vision_model = "gemini-2.5-flash".to_string();
+                needs_save = true;
+            }
+
+            // Fix tts_model if it's set to a vision model (not a TTS model)
+            if config.tts_provider == "gemini" && !config.tts_model.contains("tts") {
+                info!("Fixing invalid Gemini TTS model '{}' -> preview-tts model", config.tts_model);
+                config.tts_model = "gemini-2.5-flash-preview-tts".to_string();
+                needs_save = true;
+            }
+
+            // Fix tts_voice if it's not valid for the current tts_provider
+            if let Some(prov_def) = PROVIDER_DEFINITIONS.iter().find(|p| p.key == config.tts_provider) {
+                if !prov_def.tts_voices.is_empty() {
+                    let voice_lower = config.tts_voice.to_lowercase();
+                    let voice_valid = prov_def.tts_voices.iter().any(|v| v.to_lowercase() == voice_lower);
+                    if !voice_valid {
+                        let new_voice = prov_def.tts_voices[0].to_string();
+                        info!("Fixing invalid TTS voice '{}' for provider '{}' -> '{}'",
+                            config.tts_voice, config.tts_provider, new_voice);
+                        config.tts_voice = new_voice;
+                        needs_save = true;
+                    }
+                }
+            }
+
+            if needs_save {
+                self.save_config(&config)?;
+            }
+
             info!("Loaded config: vision={}, tts={}", config.vision_model, config.tts_model);
             Ok(config)
         } else {
@@ -440,16 +589,25 @@ impl StateManager {
         Ok(())
     }
 
-    pub fn build_prompt(&self, mood: &str, history: &History) -> String {
-        let prompt = MOOD_PROMPTS
-            .iter()
-            .find(|(m, _)| *m == mood)
-            .map(|(_, p)| *p)
-            .unwrap_or(MOOD_PROMPTS[0].1);
+    pub fn build_prompt(&self, config: &Config, history: &History) -> String {
+        let prompt = if config.mood == "custom" {
+            if config.custom_mood.is_empty() {
+                // Fallback to default roast if custom is selected but empty
+                MOOD_PROMPTS[0].1
+            } else {
+                &config.custom_mood
+            }
+        } else {
+            MOOD_PROMPTS
+                .iter()
+                .find(|(m, _)| *m == config.mood)
+                .map(|(_, p)| *p)
+                .unwrap_or(MOOD_PROMPTS[0].1)
+        };
 
         let now = Local::now();
         let time_str = now.format("%I:%M %p (%A, %B %d, %Y)").to_string();
-        
+
         let mut full_prompt = format!("{}\n\nCURRENT TIME: {}", prompt, time_str);
 
         if !history.is_empty() {

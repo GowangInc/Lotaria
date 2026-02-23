@@ -110,8 +110,9 @@
       cursor: grabbing;
     }
 
+    /* Let events bubble to parent, don't intercept on children */
     #character * {
-      pointer-events: auto;
+      pointer-events: none;
     }
 
     #character.thinking {

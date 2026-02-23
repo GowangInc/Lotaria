@@ -73,7 +73,6 @@
 
     html {
       background: transparent !important;
-      pointer-events: none;
     }
 
     body {
@@ -82,7 +81,6 @@
       overflow: hidden;
       width: 100vw;
       height: 100vh;
-      pointer-events: none;
     }
 
     #app {
@@ -90,7 +88,18 @@
       height: 100%;
       position: relative;
       overflow: hidden;
+    }
+
+    /* Click-through layer - sits behind all interactive elements */
+    #app::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
       pointer-events: none;
+      z-index: -1;
     }
 
     /* Character */
@@ -103,16 +112,10 @@
       cursor: grab;
       transition: transform 0.1s;
       z-index: 10;
-      pointer-events: auto;
     }
 
     #character:active {
       cursor: grabbing;
-    }
-
-    /* Let events bubble to parent, don't intercept on children */
-    #character * {
-      pointer-events: none;
     }
 
     #character.thinking {
@@ -1200,7 +1203,6 @@
       opacity: 0;
       transform: translateY(10px) scale(0.95);
       transition: all 0.3s ease;
-      pointer-events: auto;
       z-index: 20;
       word-wrap: break-word;
       overflow-wrap: break-word;
@@ -1254,7 +1256,6 @@
       align-items: center;
       gap: 6px;
       z-index: 20;
-      pointer-events: auto;
     }
 
     #thinking.hidden {
@@ -1305,7 +1306,6 @@
       max-width: 200px;
       box-shadow: var(--shadow-strong);
       z-index: 100;
-      pointer-events: auto;
     }
 
     #context-menu.hidden {
@@ -1353,10 +1353,6 @@
 
     #settings-overlay.open {
       opacity: 1;
-      pointer-events: auto;
-    }
-
-    #settings-overlay * {
       pointer-events: auto;
     }
 
@@ -1553,10 +1549,6 @@
 
     #welcome-overlay.open {
       opacity: 1;
-      pointer-events: auto;
-    }
-
-    #welcome-overlay * {
       pointer-events: auto;
     }
 

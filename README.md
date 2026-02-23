@@ -132,6 +132,24 @@ Create your own personality prompts:
 
 Built-in moods: roast (savage), helpful (productivity coach), encouraging (cheerleader), sarcastic (dry wit).
 
+## Settings
+
+### Frequency
+
+Control how often the pet analyzes your screen:
+
+1. Open **Settings → Frequency**
+2. Select monitoring interval:
+   - **Often** — Every 5-10 minutes
+   - **Frequent** — Every 10-20 minutes (default)
+   - **Infrequent** — Every 25-45 minutes
+
+Note: If using Gemini free tier with Gemini TTS, intervals are automatically extended to 60-90 minutes to avoid rate limits.
+
+### API Keys
+
+Add or update API keys for any provider in **Settings → API Keys**.
+
 ## Pet Styles
 
 Choose from 10 uniquely animated designs in Settings:

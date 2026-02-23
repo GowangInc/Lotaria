@@ -11,9 +11,10 @@ Lotaria is a desktop pet that sits on your screen, periodically captures the scr
 ## Current State
 
 - **UI**: Tauri frameless transparent window with Vite-built frontend
-- **Vision**: API-only via HTTP clients — Gemini (default), OpenAI, Anthropic, Groq, DeepSeek
+- **Vision**: API-only via HTTP clients — Gemini (default), OpenAI, Anthropic, Groq
 - **TTS**: API-only — Gemini TTS (default), OpenAI, Murf AI, ElevenLabs, Inworld AI
-- **Moods**: 4 built-in (roast, helpful, encouraging, sarcastic) + custom with AI improvement
+- **Moods**: 6 built-in (roast, helpful, encouraging, sarcastic, zen, anime) + custom with AI improvement
+- **Frequency**: Configurable monitoring intervals (often/frequent/infrequent)
 - **Pet Styles**: 10 highly detailed animated designs with unique personalities:
   - Each pet has multiple layers (body, pseudo-elements, shadows)
   - Custom animations (morphing, glowing, floating, waving, etc.)
@@ -84,7 +85,6 @@ cargo tauri build
 | Provider | Vision | TTS | Cost | Notes |
 |----------|--------|-----|------|-------|
 | **Google Gemini** | ✅ | ✅ | FREE | **Recommended** — vision + TTS included |
-| **DeepSeek** | ✅ | ❌ | $ ~$0.21/mo | Cheapest vision, needs separate TTS provider |
 | **Inworld AI** | ❌ | ✅ | $ ~$5-10/M chars | Cheapest TTS, tts-1.5-mini/max, 7 voices |
 | **Groq** | ✅ | ❌ | $ ~$1-2.50/mo | Fastest inference, needs separate TTS provider |
 | **OpenAI** | ✅ | ✅ | $$ ~$1.50-5/mo | gpt-4.1-mini/4o, gpt-4o-mini-tts/tts-1 |
@@ -257,7 +257,20 @@ dist/                   # Built frontend (gitignored)
 
 ## Configuration
 
-- Default scan interval: 600 seconds (10 minutes)
+### Frequency Intervals
+
+Set via **Settings → Frequency** or `config.json`:
+
+| Setting | Min | Max | Description |
+|---------|-----|-----|-------------|
+| `often` | 5 min | 10 min | Very frequent roasts |
+| `frequent` | 10 min | 20 min | Default balanced rate |
+| `infrequent` | 25 min | 45 min | Occasional roasts |
+
+**Gemini Free Tier Override**: When `gemini_free_tier: true` and using Gemini TTS, intervals are automatically set to 60-90 minutes to avoid rate limits.
+
+### Other Settings
+
 - History: 20 entries max
 - Config: `%APPDATA%/lotaria/config.json`
 - Cache: `%LOCALAPPDATA%/lotaria/` (screenshots, audio)

@@ -1,5 +1,5 @@
 use crate::capture::ScreenCapture;
-use crate::state::{get_interval_seconds, truncate_response, Config, History, ProviderDef, StateManager};
+use crate::state::{get_interval_seconds, truncate_response, Config, History, ProviderDef, StateManager, INTERVAL_PRESETS};
 use crate::tts::{self, create_tts_service};
 use crate::vision::create_vision_service;
 use serde::Serialize;
@@ -326,6 +326,23 @@ pub fn get_moods() -> Vec<(String, String)> {
     crate::state::MOOD_PROMPTS
         .iter()
         .map(|(k, _)| (k.to_string(), k.chars().next().unwrap().to_uppercase().collect::<String>() + &k[1..]))
+        .collect()
+}
+
+/// Get interval presets
+#[tauri::command]
+pub fn get_intervals() -> Vec<(String, String)> {
+    INTERVAL_PRESETS
+        .iter()
+        .map(|(key, (min, max))| {
+            let label = match *key {
+                "often" => "Often (5-10 min)",
+                "frequent" => "Frequent (10-20 min)",
+                "infrequent" => "Infrequent (25-45 min)",
+                _ => key,
+            };
+            (key.to_string(), label.to_string())
+        })
         .collect()
 }
 

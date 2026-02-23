@@ -126,19 +126,6 @@ pub static PROVIDER_DEFINITIONS: &[ProviderDefStatic] = &[
         requires_tts_provider: true,
     },
     ProviderDefStatic {
-        key: "deepseek",
-        name: "DeepSeek (Text Only)",
-        env_var: "DEEPSEEK_API_KEY",
-        docs_url: "https://platform.deepseek.com/api_keys",
-        vision_models: &[],  // deepseek-chat is text-only, VL models not on public API
-        tts_models: &[],
-        tts_voices: &[],
-        live_voices: &[],
-        recommended: false,
-        cost_note: "$ — ~$0.21/mo (NO vision support)",
-        requires_tts_provider: true,
-    },
-    ProviderDefStatic {
         key: "murf",
         name: "Murf AI (TTS)",
         env_var: "MURF_API_KEY",

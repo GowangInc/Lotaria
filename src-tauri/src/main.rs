@@ -137,6 +137,7 @@ fn main() {
             get_history,
             mark_first_run_complete,
             get_moods,
+            get_intervals,
             improve_mood,
             quit,
             get_cursor_position,

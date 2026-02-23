@@ -374,6 +374,7 @@ async function showSettings() {
     // Populate vision settings
     buildVisionUI();
     buildTtsUI();
+    buildIntervalUI();
     buildMoodUI();
     buildPetStyleUI();
     updateCostEstimator();
@@ -494,6 +495,25 @@ function buildTtsUI() {
   provSelect.addEventListener('change', updateModels);
   modelSelect.addEventListener('change', updateVoices);
   updateModels();
+}
+
+async function buildIntervalUI() {
+  const intervalSelect = document.getElementById('interval-select') as HTMLSelectElement;
+  if (!intervalSelect) return;
+
+  try {
+    const intervals = await invoke<[string, string][]>('get_intervals');
+    intervalSelect.innerHTML = '';
+    intervals.forEach(([key, label]) => {
+      const opt = document.createElement('option');
+      opt.value = key;
+      opt.textContent = label;
+      if (key === config.interval) opt.selected = true;
+      intervalSelect.appendChild(opt);
+    });
+  } catch (e) {
+    console.error('Failed to load intervals:', e);
+  }
 }
 
 async function buildMoodUI() {
@@ -770,6 +790,7 @@ function setupEventListeners() {
   document.getElementById('settings-close')?.addEventListener('click', closeSettings);
   document.getElementById('settings-save')?.addEventListener('click', async () => {
     // Save settings
+    const interval = (document.getElementById('interval-select') as HTMLSelectElement)?.value;
     const visionProv = (document.getElementById('vision-provider-select') as HTMLSelectElement).value;
     const visionModel = (document.getElementById('vision-model-select') as HTMLSelectElement).value;
     const ttsProv = (document.getElementById('tts-provider-select') as HTMLSelectElement).value;
@@ -778,6 +799,7 @@ function setupEventListeners() {
     const mood = (document.getElementById('mood-select') as HTMLSelectElement)?.value;
     const customMood = (document.getElementById('custom-mood-input') as HTMLTextAreaElement)?.value || '';
 
+    if (interval) await invoke('set_config', { key: 'interval', value: interval });
     await invoke('set_config', { key: 'vision_provider', value: visionProv });
     await invoke('set_config', { key: 'vision_model', value: visionModel });
     await invoke('set_config', { key: 'tts_provider', value: ttsProv });

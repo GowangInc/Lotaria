@@ -78,9 +78,6 @@ lotaria/
 ├── src/                 # Frontend
 │   ├── index.html       # UI (10 pet styles, custom mood UI)
 │   └── main.ts          # TypeScript app logic
-├── website/             # Landing page (gitignored)
-│   ├── index.html       # Single-page marketing site
-│   └── README.md        # Cloudflare Pages deployment
 ├── dist/                # Built frontend (generated)
 ├── package.json
 ├── vite.config.ts

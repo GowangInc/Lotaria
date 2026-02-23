@@ -708,15 +708,15 @@ async function checkCursorOverPet(): Promise<boolean> {
     const pos = await window.outerPosition();
     const scaleFactor = await window.scaleFactor();
     
-    // Pet is at bottom-right: 100x100px, positioned at (width-120, height-120) roughly
+    // Pet is at bottom-right: 100x100px, positioned with 50px margin
     // Window is 420x400
-    const petWidth = 100 * scaleFactor;
-    const petHeight = 100 * scaleFactor;
-    const petX = pos.x + (420 * scaleFactor) - petWidth - (20 * scaleFactor);
-    const petY = pos.y + (400 * scaleFactor) - petHeight - (20 * scaleFactor);
+    const margin = 50 * scaleFactor;
+    const petSize = 100 * scaleFactor;
+    const petX = pos.x + (420 * scaleFactor) - petSize - margin;
+    const petY = pos.y + (400 * scaleFactor) - petSize - margin;
     
-    return cursorX >= petX && cursorX <= petX + petWidth &&
-           cursorY >= petY && cursorY <= petY + petHeight;
+    return cursorX >= petX && cursorX <= petX + petSize &&
+           cursorY >= petY && cursorY <= petY + petSize;
   } catch (e) {
     return false;
   }

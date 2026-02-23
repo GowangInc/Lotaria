@@ -98,12 +98,12 @@ const welcomeOverlay = document.getElementById('welcome-overlay') as HTMLElement
 
 // Initialize
 async function init() {
-  // Enable click-through by default (clicks pass through to windows underneath)
-  await setClickThrough(true);
-
   // Load config
   config = await invoke('get_config');
   providers = await invoke('get_providers');
+
+  // Start click-through poller (allows clicking pet while passing through empty areas)
+  startClickThroughPoller();
 
   // Listen for roast events from monitoring
   await listen<RoastResult>('roast', (event) => {
@@ -700,20 +700,55 @@ async function setClickThrough(enable: boolean) {
   }
 }
 
-// Event listeners
-function setupEventListeners() {
-  // Enable click capture when mouse is over the character
-  character.addEventListener('mouseenter', () => setClickThrough(false));
-  character.addEventListener('mouseleave', () => {
-    // Only enable click-through if no overlays are open
+// Check if cursor is over the pet area
+async function checkCursorOverPet(): Promise<boolean> {
+  try {
+    const [cursorX, cursorY] = await invoke<[number, number]>('get_cursor_position');
+    const window = getCurrentWebviewWindow();
+    const pos = await window.outerPosition();
+    const scaleFactor = await window.scaleFactor();
+    
+    // Pet is at bottom-right: 100x100px, positioned at (width-120, height-120) roughly
+    // Window is 420x400
+    const petWidth = 100 * scaleFactor;
+    const petHeight = 100 * scaleFactor;
+    const petX = pos.x + (420 * scaleFactor) - petWidth - (20 * scaleFactor);
+    const petY = pos.y + (400 * scaleFactor) - petHeight - (20 * scaleFactor);
+    
+    return cursorX >= petX && cursorX <= petX + petWidth &&
+           cursorY >= petY && cursorY <= petY + petHeight;
+  } catch (e) {
+    return false;
+  }
+}
+
+// Poll cursor position to toggle click-through
+function startClickThroughPoller() {
+  let lastState: boolean | null = null;
+  
+  setInterval(async () => {
+    // Don't change if overlays are open
     if (!contextMenu.classList.contains('hidden') || 
         settingsOverlay.classList.contains('open') ||
         welcomeOverlay.classList.contains('open') ||
         speechBubble.classList.contains('visible')) {
+      if (lastState !== false) {
+        await setClickThrough(false);
+        lastState = false;
+      }
       return;
     }
-    setClickThrough(true);
-  });
+    
+    const isOverPet = await checkCursorOverPet();
+    if (isOverPet !== lastState) {
+      await setClickThrough(!isOverPet);
+      lastState = isOverPet;
+    }
+  }, 100); // Check 10 times per second
+}
+
+// Event listeners
+function setupEventListeners() {
 
   // Right-click context menu
   character.addEventListener('contextmenu', (e) => {

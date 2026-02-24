@@ -319,9 +319,45 @@ async function showSettings() {
     // Disable click-through so settings are interactive
     await setClickThrough(false);
 
-    // Resize window to fit settings content
+    // Resize window to fit settings content and keep it on screen
     const window = getCurrentWebviewWindow();
-    await window.setSize({ type: 'Physical', width: 420, height: 700 });
+    const scaleFactor = await window.scaleFactor();
+    const currentPos = await window.outerPosition();
+
+    // Get primary monitor size
+    const { availableMonitors } = await import('@tauri-apps/api/window');
+    const monitors = await availableMonitors();
+    const primaryMonitor = monitors[0];
+
+    const settingsWidth = 420;
+    const settingsHeight = 700;
+
+    // Calculate new position to keep window on screen
+    let newX = currentPos.x;
+    let newY = currentPos.y;
+
+    // Check right edge
+    if (newX + settingsWidth * scaleFactor > primaryMonitor.size.width) {
+      newX = primaryMonitor.size.width - settingsWidth * scaleFactor;
+    }
+
+    // Check bottom edge
+    if (newY + settingsHeight * scaleFactor > primaryMonitor.size.height) {
+      newY = primaryMonitor.size.height - settingsHeight * scaleFactor;
+    }
+
+    // Check left edge
+    if (newX < 0) newX = 0;
+
+    // Check top edge
+    if (newY < 0) newY = 0;
+
+    // Reposition if needed
+    if (newX !== currentPos.x || newY !== currentPos.y) {
+      await window.setPosition({ type: 'Physical', x: newX, y: newY });
+    }
+
+    await window.setSize({ type: 'Physical', width: settingsWidth, height: settingsHeight });
 
     const apiKeys = await invoke<Record<string, string>>('get_api_keys');
 

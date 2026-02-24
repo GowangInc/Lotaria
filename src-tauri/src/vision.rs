@@ -294,8 +294,9 @@ impl VisionService for FoxCodeVisionService {
 
 impl FoxCodeVisionService {
     async fn analyze_gemini(&self, base_url: &str, image_base64: &str, prompt: &str) -> Result<String> {
+        // FoxCode uses /v1 instead of /v1beta
         let url = format!(
-            "{}/v1beta/models/{}:generateContent",
+            "{}/v1/models/{}:generateContent",
             base_url, self.model
         );
 

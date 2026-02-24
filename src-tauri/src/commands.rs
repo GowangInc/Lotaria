@@ -522,14 +522,22 @@ pub async fn get_ollama_models() -> Result<Vec<String>, String> {
     let ollama_response: OllamaResponse = response.json().await
         .map_err(|e| format!("Failed to parse Ollama response: {}", e))?;
 
-    // Filter for vision models (models with "vision" or "llava" or "minicpm" in name)
+    // Filter for vision models - known vision-capable model families
     let vision_models: Vec<String> = ollama_response.models
         .into_iter()
         .filter(|m| {
             let name_lower = m.name.to_lowercase();
-            name_lower.contains("vision") ||
-            name_lower.contains("llava") ||
-            name_lower.contains("minicpm")
+            // Common vision model families
+            name_lower.contains("vision") ||      // llama3.2-vision, qwen-vl, etc.
+            name_lower.contains("llava") ||       // llava, bakllava
+            name_lower.contains("minicpm") ||     // minicpm-v
+            name_lower.contains("moondream") ||   // moondream2
+            name_lower.contains("qwen") && name_lower.contains("vl") ||  // qwen3-vl, qwen2-vl
+            name_lower.contains("phi") && name_lower.contains("vision") || // phi-3-vision
+            name_lower.contains("llama4") ||      // llama4 is natively multimodal
+            name_lower.contains("cogvlm") ||      // cogvlm
+            name_lower.contains("internvl") ||    // internvl
+            name_lower.contains("yi-vl")          // yi-vl
         })
         .map(|m| m.name)
         .collect();

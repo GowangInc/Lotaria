@@ -245,7 +245,7 @@ struct OpenAIMessage {
     content: String,
 }
 
-/// FoxCode vision service (Gemini proxy)
+/// FoxCode vision service (Multi-provider proxy)
 pub struct FoxCodeVisionService {
     api_key: String,
     model: String,
@@ -261,11 +261,16 @@ impl FoxCodeVisionService {
         }
     }
 
-    fn model_name(&self) -> String {
+    fn get_base_url_and_format(&self) -> (&str, &str) {
+        // Determine base URL and API format based on model prefix
         if self.model.starts_with("gemini-") {
-            self.model.clone()
+            ("https://code.newcli.com/gemini", "gemini")
+        } else if self.model.starts_with("gpt-") {
+            ("https://code.newcli.com/codex/v1", "openai")
+        } else if self.model.starts_with("claude-") {
+            ("https://code.newcli.com/claude/aws", "anthropic")
         } else {
-            format!("gemini-{}", self.model)
+            ("https://code.newcli.com/gemini", "gemini")
         }
     }
 }
@@ -273,14 +278,26 @@ impl FoxCodeVisionService {
 #[async_trait::async_trait]
 impl VisionService for FoxCodeVisionService {
     async fn analyze(&self, image_base64: &str, prompt: &str) -> Result<String> {
-        let url = format!(
-            "https://code.newcli.com/gemini/v1beta/models/{}:generateContent?key={}",
-            self.model_name(),
-            self.api_key
-        );
+        let (base_url, format) = self.get_base_url_and_format();
 
-        tracing::info!("FoxCode Vision API call - model: {}, prompt_len: {}, image_len: {}",
-            self.model_name(), prompt.len(), image_base64.len());
+        tracing::info!("FoxCode Vision API call - model: {}, format: {}, base_url: {}",
+            self.model, format, base_url);
+
+        match format {
+            "gemini" => self.analyze_gemini(base_url, image_base64, prompt).await,
+            "openai" => self.analyze_openai(base_url, image_base64, prompt).await,
+            "anthropic" => self.analyze_anthropic(base_url, image_base64, prompt).await,
+            _ => Err(anyhow!("Unknown FoxCode format: {}", format)),
+        }
+    }
+}
+
+impl FoxCodeVisionService {
+    async fn analyze_gemini(&self, base_url: &str, image_base64: &str, prompt: &str) -> Result<String> {
+        let url = format!(
+            "{}/v1beta/models/{}:generateContent",
+            base_url, self.model
+        );
 
         let mut parts = vec![json!({"text": prompt})];
         if !image_base64.is_empty() {
@@ -293,18 +310,16 @@ impl VisionService for FoxCodeVisionService {
         }
 
         let body = json!({
-            "contents": [{
-                "parts": parts
-            }],
+            "contents": [{"parts": parts}],
             "generationConfig": {
                 "maxOutputTokens": 2048,
                 "temperature": 0.7
             }
         });
 
-        let response = self
-            .client
+        let response = self.client
             .post(&url)
+            .header("x-api-key", &self.api_key)
             .json(&body)
             .send()
             .await?;
@@ -312,30 +327,14 @@ impl VisionService for FoxCodeVisionService {
         let status = response.status();
         let response_text = response.text().await?;
 
-        tracing::info!("FoxCode Vision API response status: {}", status);
-
         if !status.is_success() {
-            tracing::error!("FoxCode Vision API error: {}", response_text);
-            if response_text.contains("429") || response_text.contains("rate limit") {
-                return Err(anyhow!("Rate limit exceeded. Please try again later."));
-            }
-            return Err(anyhow!("FoxCode API error: {}", response_text));
+            tracing::error!("FoxCode Gemini API error: {}", response_text);
+            return Err(anyhow!("FoxCode Gemini error: {}", response_text));
         }
 
-        let gemini_response: GeminiResponse = match serde_json::from_str(&response_text) {
-            Ok(r) => r,
-            Err(e) => {
-                tracing::error!("Failed to parse FoxCode vision response: {}. Response: {}", e, response_text);
-                return Err(anyhow!("Failed to parse response: {}", e));
-            }
-        };
-
-        let parts = gemini_response
-            .candidates
-            .get(0)
-            .map(|c| &c.content.parts)
-            .cloned()
-            .unwrap_or_default();
+        let gemini_response: GeminiResponse = serde_json::from_str(&response_text)?;
+        let parts = gemini_response.candidates.get(0)
+            .map(|c| &c.content.parts).cloned().unwrap_or_default();
 
         let non_thought: Vec<_> = parts.iter().filter(|p| !p.thought).collect();
         let text = if !non_thought.is_empty() {
@@ -344,8 +343,95 @@ impl VisionService for FoxCodeVisionService {
             parts.iter().map(|p| p.text.as_str()).collect::<Vec<_>>().join("")
         };
 
-        tracing::info!("FoxCode Vision analysis result ({} parts, {} thought): {}",
-            parts.len(), parts.iter().filter(|p| p.thought).count(), text);
+        Ok(text)
+    }
+
+    async fn analyze_openai(&self, base_url: &str, image_base64: &str, prompt: &str) -> Result<String> {
+        let url = format!("{}/chat/completions", base_url);
+
+        let mut content = vec![json!({"type": "text", "text": prompt})];
+        if !image_base64.is_empty() {
+            content.push(json!({
+                "type": "image_url",
+                "image_url": {"url": format!("data:image/png;base64,{}", image_base64)}
+            }));
+        }
+
+        let body = json!({
+            "model": self.model,
+            "messages": [{"role": "user", "content": content}],
+            "max_tokens": 256,
+            "temperature": 0.7
+        });
+
+        let response = self.client
+            .post(&url)
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .json(&body)
+            .send()
+            .await?;
+
+        let status = response.status();
+        if !status.is_success() {
+            let error_text = response.text().await?;
+            return Err(anyhow!("FoxCode Codex error: {}", error_text));
+        }
+
+        let openai_response: OpenAIResponse = response.json().await?;
+        let text = openai_response.choices.get(0)
+            .map(|c| c.message.content.clone()).unwrap_or_default();
+
+        Ok(text)
+    }
+
+    async fn analyze_anthropic(&self, base_url: &str, image_base64: &str, prompt: &str) -> Result<String> {
+        let url = format!("{}/v1/messages", base_url);
+
+        let mut content = vec![json!({"type": "text", "text": prompt})];
+        if !image_base64.is_empty() {
+            content.push(json!({
+                "type": "image",
+                "source": {
+                    "type": "base64",
+                    "media_type": "image/png",
+                    "data": image_base64
+                }
+            }));
+        }
+
+        let body = json!({
+            "model": self.model,
+            "messages": [{"role": "user", "content": content}],
+            "max_tokens": 256
+        });
+
+        let response = self.client
+            .post(&url)
+            .header("x-api-key", &self.api_key)
+            .header("anthropic-version", "2023-06-01")
+            .json(&body)
+            .send()
+            .await?;
+
+        let status = response.status();
+        if !status.is_success() {
+            let error_text = response.text().await?;
+            return Err(anyhow!("FoxCode Claude error: {}", error_text));
+        }
+
+        #[derive(Deserialize)]
+        struct AnthropicResponse {
+            content: Vec<AnthropicContent>,
+        }
+        #[derive(Deserialize)]
+        struct AnthropicContent {
+            text: String,
+        }
+
+        let anthropic_response: AnthropicResponse = response.json().await?;
+        let text = anthropic_response.content.get(0)
+            .map(|c| c.text.clone()).unwrap_or_default();
+
         Ok(text)
     }
 }

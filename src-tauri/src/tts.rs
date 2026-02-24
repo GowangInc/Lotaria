@@ -446,124 +446,6 @@ impl TTSService for InworldTTSService {
     }
 }
 
-/// FoxCode TTS service (Gemini proxy - UNTESTED)
-pub struct FoxCodeTTSService {
-    api_key: String,
-    model: String,
-    voice: String,
-    client: Client,
-}
-
-impl FoxCodeTTSService {
-    pub fn new(api_key: String, model: String, voice: String) -> Self {
-        Self {
-            api_key,
-            model,
-            voice,
-            client: Client::new(),
-        }
-    }
-
-    fn model_name(&self) -> String {
-        if self.model.starts_with("gemini-") {
-            self.model.clone()
-        } else {
-            format!("gemini-{}", self.model)
-        }
-    }
-}
-
-#[async_trait::async_trait]
-impl TTSService for FoxCodeTTSService {
-    async fn synthesize(&self, text: &str) -> Result<Vec<u8>> {
-        let url = format!(
-            "https://code.newcli.com/gemini/v1beta/models/{}:generateContent?key={}",
-            self.model_name(),
-            self.api_key
-        );
-
-        tracing::info!("FoxCode TTS API call - model: {}, voice: {}, text_len: {}",
-            self.model_name(), self.voice, text.len());
-        tracing::warn!("FoxCode TTS is UNTESTED - may not work!");
-
-        let body = json!({
-            "contents": [{
-                "parts": [{"text": text}]
-            }],
-            "generationConfig": {
-                "responseModalities": ["AUDIO"],
-                "speechConfig": {
-                    "voiceConfig": {
-                        "prebuiltVoiceConfig": {
-                            "voiceName": self.voice
-                        }
-                    }
-                }
-            }
-        });
-
-        let response = self
-            .client
-            .post(&url)
-            .json(&body)
-            .send()
-            .await?;
-
-        let status = response.status();
-        let response_text: String = response.text().await?;
-
-        tracing::info!("FoxCode TTS API response status: {}", status);
-
-        if !status.is_success() {
-            tracing::error!("FoxCode TTS API error: {}", response_text);
-            return Err(anyhow!("FoxCode TTS error (may not support TTS endpoints): {}", response_text));
-        }
-
-        tracing::debug!("FoxCode TTS raw response: {}", response_text);
-
-        let gemini_response: GeminiAudioResponse = match serde_json::from_str(&response_text) {
-            Ok(r) => r,
-            Err(e) => {
-                tracing::error!("Failed to parse FoxCode TTS response: {}. Response: {}", e, response_text);
-                return Err(anyhow!("Failed to parse TTS response (FoxCode may not support TTS): {}", e));
-            }
-        };
-
-        let audio_data = gemini_response
-            .candidates
-            .get(0)
-            .and_then(|c| c.content.parts.get(0))
-            .and_then(|p| p.inline_data.as_ref())
-            .map(|d| decode_base64(&d.data))
-            .ok_or_else(|| {
-                tracing::error!("No audio data in FoxCode TTS response");
-                anyhow!("No audio data in response")
-            })??;
-
-        tracing::info!("FoxCode TTS audio data received: {} bytes", audio_data.len());
-
-        let audio_bytes = if let Some(mime) = gemini_response
-            .candidates
-            .get(0)
-            .and_then(|c| c.content.parts.get(0))
-            .and_then(|p| p.inline_data.as_ref())
-            .map(|d| d.mime_type.clone())
-        {
-            tracing::info!("FoxCode TTS audio mime type: {}", mime);
-            if mime.contains("L16") || mime.contains("pcm") {
-                pcm_to_wav(&audio_data, 24000)?
-            } else {
-                audio_data
-            }
-        } else {
-            audio_data
-        };
-
-        tracing::info!("FoxCode TTS final audio size: {} bytes", audio_bytes.len());
-        Ok(audio_bytes)
-    }
-}
-
 /// Factory function to create the appropriate TTS service
 pub fn create_tts_service(provider: &str, api_key: String, model: String, voice: String) -> Box<dyn TTSService> {
     match provider {
@@ -574,7 +456,6 @@ pub fn create_tts_service(provider: &str, api_key: String, model: String, voice:
                 Box::new(GeminiTTSService::new(api_key, model, voice))
             }
         }
-        "foxcode" => Box::new(FoxCodeTTSService::new(api_key, model, voice)),
         "murf" => Box::new(MurfTTSService::new(api_key, model, voice)),
         "elevenlabs" => Box::new(ElevenLabsTTSService::new(api_key, model, voice)),
         "inworld" => Box::new(InworldTTSService::new(api_key, model, voice)),

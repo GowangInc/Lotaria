@@ -114,15 +114,20 @@ API keys entered in-app are persisted to config and override environment variabl
 
 **Voices** (30 total): Kore, Charon, Puck, Fenrir, Aoede, Leda, Orus, Zephyr, Achernar, Achird, Algenib, Algieba, Alnilam, Autonoe, Callirrhoe, Despina, Enceladus, Erinome, Gacrux, Iapetus, Laomedeia, Pulcherrima, Rasalgethi, Sadachbia, Sadaltager, Schedar, Sulafat, Umbriel, Vindemiatrix, Zubenelgenubi
 
-### FoxCode (Gemini Proxy)
+### FoxCode (Multi-Provider Proxy)
 
-- **API**: `https://code.newcli.com/gemini/v1beta/models/{model}:generateContent` (Gemini-compatible proxy)
-- **Auth**: API key via `?key=` query parameter
-- **Vision Models**: gemini-3-pro, gemini-3-pro-high, gemini-3-pro-preview, gemini-3-flash, gemini-3-flash-preview, gemini-2.5-pro, gemini-2.5-flash, gemini-2.5-flash-lite
-- **TTS Models**: gemini-2.5-flash-preview-tts, gemini-2.5-pro-preview-tts, gemini-2.5-flash-lite-preview-tts (⚠️ UNTESTED)
-- **Voices**: Same as Gemini (30 voices)
-- **Cost**: ~¥0.12-0.35 per million tokens (significantly cheaper than official Gemini)
-- **Warning**: Third-party proxy service - TTS endpoints may not be supported. Test before relying on it.
+- **Base URLs**:
+  - Gemini: `https://code.newcli.com/gemini`
+  - Codex: `https://code.newcli.com/codex/v1`
+  - Claude: `https://code.newcli.com/claude/aws`
+- **Auth**: `x-api-key` header (same API key for all endpoints)
+- **Vision Models**:
+  - Gemini: gemini-3-pro, gemini-3-pro-high, gemini-3-pro-preview, gemini-3-flash, gemini-3-flash-preview, gemini-2.5-pro, gemini-2.5-flash, gemini-2.5-flash-lite
+  - Codex: gpt-5.3-codex, gpt-5.2, gpt-5.2-codex, gpt-5.1, gpt-5.1-codex, gpt-5.1-codex-mini, gpt-5.1-codex-max, gpt-5, gpt-5-codex
+  - Claude: claude-sonnet-4-6, claude-opus-4-6, claude-opus-4-5, claude-sonnet-4-5, claude-haiku-4-5-20251001, claude-opus-4, claude-opus-4-1, and thinking variants
+- **TTS**: Not supported (requires separate TTS provider)
+- **Cost**: ~¥0.03-0.35 per million tokens (significantly cheaper than official APIs)
+- **Note**: Third-party proxy service - automatically routes to correct endpoint based on model prefix
 
 ### Murf AI
 

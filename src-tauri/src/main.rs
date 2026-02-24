@@ -11,21 +11,20 @@ fn main() {
         eprintln!("{}", msg);
         tracing::error!("{}", msg);
     }));
-    
-    // Initialize tracing with file logging
-    let log_path = dirs::cache_dir()
+
+    // Initialize tracing with rotating file logging
+    let log_dir = dirs::cache_dir()
         .unwrap_or_else(|| std::path::PathBuf::from("."))
-        .join("lotaria")
-        .join("app.log");
-    
-    let log_file = std::fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(&log_path)
-        .unwrap_or_else(|_| std::fs::File::create("lotaria.log").unwrap());
-    
+        .join("lotaria");
+
+    // Create log directory if it doesn't exist
+    let _ = std::fs::create_dir_all(&log_dir);
+
+    // Daily rotation: keeps last 7 days of logs, max 10MB per file
+    let file_appender = tracing_appender::rolling::daily(&log_dir, "app.log");
+
     tracing_subscriber::fmt()
-        .with_writer(move || log_file.try_clone().unwrap())
+        .with_writer(file_appender)
         .with_ansi(false)
         .init();
     

@@ -47,6 +47,7 @@ dirs = "6"
 # Logging
 tracing = "0.1"
 tracing-subscriber = "0.3"
+tracing-appender = "0.2"
 
 # Random
 rand = "0.8"

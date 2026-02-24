@@ -275,6 +275,18 @@ async fn monitoring_loop(
     config_lock: Arc<RwLock<Config>>,
 ) {
     let mut elapsed_secs = 0;
+
+    // Calculate initial interval
+    let config = config_lock.read().await;
+    let mut interval_secs = get_interval_seconds(
+        &config.interval,
+        config.gemini_free_tier,
+        &config.tts_provider,
+    );
+    drop(config);
+
+    tracing::info!("Monitoring loop started with interval: {} seconds", interval_secs);
+
     loop {
         // Check if monitoring is still enabled
         let is_active = monitoring.lock().map(|g| *g).unwrap_or(false);
@@ -283,19 +295,22 @@ async fn monitoring_loop(
             break;
         }
 
-        // Read current config for interval
-        let config = config_lock.read().await;
-        let interval_secs = get_interval_seconds(
-            &config.interval,
-            config.gemini_free_tier,
-            &config.tts_provider,
-        );
-        drop(config);
-
         if elapsed_secs >= interval_secs {
             elapsed_secs = 0;
+
             // Emit event for frontend to trigger roast
             let _ = app_handle.emit("monitoring-tick", ());
+
+            // Calculate next interval after roast
+            let config = config_lock.read().await;
+            interval_secs = get_interval_seconds(
+                &config.interval,
+                config.gemini_free_tier,
+                &config.tts_provider,
+            );
+            drop(config);
+
+            tracing::info!("Next roast scheduled in {} seconds", interval_secs);
         }
 
         sleep(Duration::from_secs(1)).await;

@@ -317,8 +317,8 @@ impl FoxCodeVisionService {
             }
         });
 
-        tracing::debug!("FoxCode Gemini request URL: {}", url);
-        tracing::debug!("FoxCode Gemini request body: {}", serde_json::to_string_pretty(&body).unwrap_or_default());
+        tracing::info!("FoxCode Gemini request URL: {}", url);
+        tracing::info!("FoxCode Gemini request body (truncated): {} parts", parts.len());
 
         let response = self.client
             .post(&url)
@@ -330,7 +330,7 @@ impl FoxCodeVisionService {
         let status = response.status();
         let response_text = response.text().await?;
 
-        tracing::debug!("FoxCode Gemini response status: {}, body: {}", status, response_text);
+        tracing::info!("FoxCode Gemini response status: {}, body: {}", status, response_text);
 
         if !status.is_success() {
             tracing::error!("FoxCode Gemini API error: {}", response_text);

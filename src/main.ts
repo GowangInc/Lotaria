@@ -745,24 +745,32 @@ async function checkCursorOverPet(): Promise<boolean> {
 // Poll cursor position to toggle click-through
 function startClickThroughPoller() {
   let lastState: boolean | null = null;
+  let isPolling = false;
   
   setInterval(async () => {
-    // Don't change if overlays are open
-    if (!contextMenu.classList.contains('hidden') || 
-        settingsOverlay.classList.contains('open') ||
-        welcomeOverlay.classList.contains('open') ||
-        speechBubble.classList.contains('visible')) {
-      if (lastState !== false) {
-        await setClickThrough(false);
-        lastState = false;
+    if (isPolling) return;
+    isPolling = true;
+
+    try {
+      // Don't change if overlays are open
+      if (!contextMenu.classList.contains('hidden') || 
+          settingsOverlay.classList.contains('open') ||
+          welcomeOverlay.classList.contains('open') ||
+          speechBubble.classList.contains('visible')) {
+        if (lastState !== false) {
+          await setClickThrough(false);
+          lastState = false;
+        }
+        return;
       }
-      return;
-    }
-    
-    const isOverPet = await checkCursorOverPet();
-    if (isOverPet !== lastState) {
-      await setClickThrough(!isOverPet);
-      lastState = isOverPet;
+      
+      const isOverPet = await checkCursorOverPet();
+      if (isOverPet !== lastState) {
+        await setClickThrough(!isOverPet);
+        lastState = isOverPet;
+      }
+    } finally {
+      isPolling = false;
     }
   }, 100); // Check 10 times per second
 }

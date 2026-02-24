@@ -266,6 +266,7 @@ async fn monitoring_loop(
     monitoring: Arc<Mutex<bool>>,
     config_lock: Arc<RwLock<Config>>,
 ) {
+    let mut elapsed_secs = 0;
     loop {
         // Check if monitoring is still enabled
         let is_active = monitoring.lock().map(|g| *g).unwrap_or(false);
@@ -283,16 +284,14 @@ async fn monitoring_loop(
         );
         drop(config);
 
-        sleep(Duration::from_secs(interval_secs)).await;
-
-        // Check again after sleep
-        let is_active = monitoring.lock().map(|g| *g).unwrap_or(false);
-        if !is_active {
-            break;
+        if elapsed_secs >= interval_secs {
+            elapsed_secs = 0;
+            // Emit event for frontend to trigger roast
+            let _ = app_handle.emit("monitoring-tick", ());
         }
 
-        // Emit event for frontend to trigger roast
-        let _ = app_handle.emit("monitoring-tick", ());
+        sleep(Duration::from_secs(1)).await;
+        elapsed_secs += 1;
     }
 }
 

@@ -102,6 +102,7 @@ async fn super_monitoring_loop(
     use tokio::time::{sleep, Duration};
     use lotaria::state::get_interval_seconds;
 
+    let mut elapsed_secs = 0;
     loop {
         let is_active = monitoring.lock().map(|g| *g).unwrap_or(false);
         if !is_active {
@@ -116,13 +117,12 @@ async fn super_monitoring_loop(
         );
         drop(config);
 
-        sleep(Duration::from_secs(interval_secs)).await;
-
-        let is_active = monitoring.lock().map(|g| *g).unwrap_or(false);
-        if !is_active {
-            break;
+        if elapsed_secs >= interval_secs {
+            elapsed_secs = 0;
+            let _ = app_handle.emit("monitoring-tick", ());
         }
 
-        let _ = app_handle.emit("monitoring-tick", ());
+        sleep(Duration::from_secs(1)).await;
+        elapsed_secs += 1;
     }
 }

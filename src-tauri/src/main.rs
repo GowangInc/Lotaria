@@ -159,6 +159,7 @@ async fn super_monitoring_loop(
 
     tracing::info!("Monitoring loop started");
 
+    let mut elapsed_secs = 0;
     loop {
         let is_active = match monitoring.lock() {
             Ok(g) => *g,
@@ -182,21 +183,16 @@ async fn super_monitoring_loop(
             )
         };
 
-        tracing::info!("Waiting {} seconds until next roast...", interval_secs);
-        sleep(Duration::from_secs(interval_secs)).await;
-
-        let is_active = match monitoring.lock() {
-            Ok(g) => *g,
-            Err(_) => break,
-        };
-        
-        if !is_active {
-            break;
+        if elapsed_secs >= interval_secs {
+            tracing::info!("Triggering roast after {} seconds...", elapsed_secs);
+            elapsed_secs = 0;
+            if let Err(e) = app_handle.emit("monitoring-tick", ()) {
+                tracing::error!("Failed to emit monitoring tick: {}", e);
+            }
         }
 
-        if let Err(e) = app_handle.emit("monitoring-tick", ()) {
-            tracing::error!("Failed to emit monitoring tick: {}", e);
-        }
+        sleep(Duration::from_secs(1)).await;
+        elapsed_secs += 1;
     }
 
     tracing::info!("Monitoring loop ended");

@@ -243,6 +243,8 @@ struct OpenAIChoice {
 #[derive(Debug, Deserialize, Clone)]
 struct OpenAIMessage {
     content: String,
+    #[serde(default)]
+    reasoning: Option<String>,
 }
 
 /// Ollama vision service (local models)
@@ -303,7 +305,16 @@ impl VisionService for OllamaVisionService {
 
         let openai_response: OpenAIResponse = serde_json::from_str(&response_text)?;
         let text = openai_response.choices.get(0)
-            .map(|c| c.message.content.clone()).unwrap_or_default();
+            .map(|c| {
+                // Qwen models put response in "reasoning" field, fallback to "content"
+                if let Some(reasoning) = &c.message.reasoning {
+                    if !reasoning.is_empty() {
+                        return reasoning.clone();
+                    }
+                }
+                c.message.content.clone()
+            })
+            .unwrap_or_default();
 
         tracing::info!("Ollama analysis result: {}", text);
         Ok(text)

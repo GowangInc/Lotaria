@@ -196,6 +196,14 @@ pub async fn roast_now(
 
         match tts_service.synthesize(&analysis).await {
             Ok(audio_bytes) => {
+                // Save audio to file for debugging
+                let audio_path = state.state_manager.temp_dir().join(format!("audio_{}.wav", timestamp));
+                if let Err(e) = std::fs::write(&audio_path, &audio_bytes) {
+                    tracing::error!("Failed to save audio file: {}", e);
+                } else {
+                    tracing::info!("Audio saved to: {:?}", audio_path);
+                }
+
                 let _ = tts::AudioPlayer::play_async(audio_bytes.clone());
                 audio_base64 = Some(b64_encode(&audio_bytes));
             }

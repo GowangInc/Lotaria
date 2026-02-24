@@ -393,11 +393,16 @@ async function showSettings() {
 
     const apiKeys = await invoke<Record<string, string>>('get_api_keys');
 
-    // Populate API keys
+    // Populate API keys (skip local providers that don't need keys)
     const apiKeysList = document.getElementById('api-keys-list') as HTMLElement;
     apiKeysList.innerHTML = '';
 
     providers.forEach(provider => {
+      // Skip local providers that don't need API keys
+      if (provider.key === 'ollama' || provider.key === 'piper') {
+        return;
+      }
+
       const row = document.createElement('div');
       row.className = 'key-row';
       const hasKey = apiKeys[provider.key] && apiKeys[provider.key].length > 0;

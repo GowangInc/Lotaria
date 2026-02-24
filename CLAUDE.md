@@ -11,9 +11,9 @@ Lotaria is a desktop pet that sits on your screen, periodically captures the scr
 ## Current State
 
 - **UI**: Tauri frameless transparent window with Vite-built frontend
-- **Vision**: API-only via HTTP clients — Gemini (default), OpenAI, Anthropic, Groq
-- **TTS**: API-only — Gemini TTS (default), OpenAI, Murf AI, ElevenLabs, Inworld AI
-- **Moods**: 6 built-in (roast, helpful, encouraging, sarcastic, zen, anime) + custom with AI improvement
+- **Vision**: Gemini (default), OpenAI, Anthropic, Groq, Ollama (local)
+- **TTS**: Piper TTS (bundled, offline), Gemini TTS (free), OpenAI, Murf AI, ElevenLabs, Inworld AI
+- **Moods**: 10 built-in (roast, helpful, encouraging, sarcastic, zen, anime, gordon, therapist, detective, hype) + custom with AI improvement
 - **Frequency**: Configurable monitoring intervals (often/frequent/infrequent)
 - **Pet Styles**: 10 highly detailed animated designs with unique personalities:
   - Each pet has multiple layers (body, pseudo-elements, shadows)
@@ -33,8 +33,8 @@ Lotaria is a desktop pet that sits on your screen, periodically captures the scr
 - **Desktop**: Tauri 2.0 — transparent, frameless, always-on-top, click-through
 - **Frontend Build**: Vite + TypeScript
 - **Screen Capture**: `xcap` crate (cross-platform)
-- **Vision**: Direct HTTP APIs (Gemini, OpenAI-compatible)
-- **TTS**: Gemini TTS via `reqwest`, OpenAI, Murf AI, ElevenLabs, Inworld AI
+- **Vision**: Direct HTTP APIs (Gemini, OpenAI-compatible, Ollama local)
+- **TTS**: Piper TTS (subprocess, bundled), Gemini TTS via `reqwest`, OpenAI, Murf AI, ElevenLabs, Inworld AI
 - **Audio**: Playback via `rodio`
 - **UI**: Single HTML file with TypeScript (no framework)
 - **State**: JSON file persistence via `dirs` crate

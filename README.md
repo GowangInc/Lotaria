@@ -15,13 +15,14 @@ A desktop pet that watches your screen and roasts you — rebuilt with **Tauri +
 ## Features
 
 - **Screen-aware roasts** — captures screen and generates context-specific commentary
-- **Multi-provider AI** — Gemini (recommended), OpenAI, Anthropic, Groq, DeepSeek
-- **Premium TTS** — Gemini TTS (free), OpenAI, Murf AI, ElevenLabs, Inworld AI
-- **Custom moods** — roast, helpful, encouraging, sarcastic, or create your own with AI improvement
+- **Multi-provider AI** — Gemini (recommended), OpenAI, Anthropic, Groq, Ollama (local)
+- **Local & Cloud TTS** — Piper TTS (bundled, offline), Gemini TTS (free), OpenAI, Murf AI, ElevenLabs, Inworld AI
+- **Custom moods** — roast, helpful, encouraging, sarcastic, zen, anime, gordon, therapist, detective, hype, or create your own with AI improvement
 - **10 pet designs** — cat, ghost, robot, blob, owl, alien, pumpkin, cloud, octopus, or classic box
 - **Smooth animations** — avatar collapses during screenshot, expands on return
 - **Context memory** — remembers past roasts to call out patterns
-- **Tiny footprint** — entire app under 15MB
+- **Offline capable** — Use Ollama for vision + Piper for TTS with zero API costs
+- **Tiny footprint** — entire app under 15MB (plus optional voice models)
 - **Cross-platform** — Windows, macOS, Linux (Windows only for now)
 - **Native performance** — Rust backend with Web frontend
 - **Privacy first** — auto-delete screenshots after 24h, pause anytime
@@ -68,13 +69,16 @@ lotaria/
 │   │   ├── lib.rs       # Module exports
 │   │   ├── state.rs     # Config, history, providers, moods
 │   │   ├── capture.rs   # Screen capture (xcap)
-│   │   ├── vision.rs    # Vision API clients
-│   │   ├── tts.rs       # TTS API clients + audio
+│   │   ├── vision.rs    # Vision API clients (Gemini, OpenAI, Ollama)
+│   │   ├── tts.rs       # TTS services (Piper, Gemini, OpenAI, etc.)
 │   │   └── commands.rs  # Tauri commands (roast, improve_mood)
+│   ├── binaries/        # Bundled Piper TTS binary + dependencies
+│   ├── models/          # Bundled voice models (en_GB-alan-low)
 │   ├── capabilities/    # Tauri 2.0 capabilities
 │   ├── icons/           # App icons
 │   ├── Cargo.toml
-│   └── tauri.conf.json
+│   ├── tauri.conf.json
+│   └── PIPER_SETUP.md   # Instructions for bundling Piper
 ├── src/                 # Frontend
 │   ├── index.html       # UI (10 pet styles, custom mood UI)
 │   └── main.ts          # TypeScript app logic

@@ -113,12 +113,15 @@ pub async fn roast_now(
 ) -> Result<RoastResult, String> {
     let config = state.config.read().await.clone();
 
-    // Check if we have API keys (skip for Ollama - it's local)
+    // Check if we have API keys (skip for local providers)
     let vision_provider_def = ProviderDef::get(&config.vision_provider)
         .ok_or_else(|| "Invalid vision provider".to_string())?;
 
-    let vision_api_key = if config.vision_provider == "ollama" {
-        String::new() // Ollama doesn't need an API key
+    // Local providers that don't need API keys
+    let is_local_vision = config.vision_provider == "ollama";
+
+    let vision_api_key = if is_local_vision {
+        String::new() // Local providers don't need API keys
     } else {
         config.api_keys.get(&config.vision_provider)
             .cloned()
@@ -183,13 +186,22 @@ pub async fn roast_now(
         let tts_provider_def = ProviderDef::get(&config.tts_provider)
             .ok_or_else(|| "Invalid TTS provider".to_string())?;
 
-        let tts_api_key = if config.tts_provider == config.vision_provider {
+        // Local TTS providers that don't need API keys
+        let is_local_tts = config.tts_provider == "piper";
+
+        let tts_api_key = if is_local_tts {
+            String::new() // Local TTS doesn't need API keys
+        } else if config.tts_provider == config.vision_provider {
             config.api_keys.get(&config.tts_provider)
                 .cloned()
                 .or_else(|| std::env::var(&tts_provider_def.env_var).ok())
+                .ok_or_else(|| "TTS API key not set".to_string())?
         } else {
-            config.api_keys.get(&config.tts_provider).cloned()
-        }.ok_or_else(|| "TTS API key not set".to_string())?;
+            config.api_keys.get(&config.tts_provider)
+                .cloned()
+                .or_else(|| std::env::var(&tts_provider_def.env_var).ok())
+                .ok_or_else(|| "TTS API key not set".to_string())?
+        };
 
         let tts_service = create_tts_service(
             &config.tts_provider,
@@ -380,12 +392,14 @@ pub async fn improve_mood(
 ) -> Result<String, String> {
     let config = state.config.read().await.clone();
 
-    // Get vision API key (skip for Ollama - it's local)
+    // Get vision API key (skip for local providers)
     let vision_provider_def = ProviderDef::get(&config.vision_provider)
         .ok_or_else(|| "Invalid vision provider".to_string())?;
 
-    let vision_api_key = if config.vision_provider == "ollama" {
-        String::new() // Ollama doesn't need an API key
+    let is_local_vision = config.vision_provider == "ollama";
+
+    let vision_api_key = if is_local_vision {
+        String::new() // Local providers don't need API keys
     } else {
         config.api_keys.get(&config.vision_provider)
             .cloned()

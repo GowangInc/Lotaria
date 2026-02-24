@@ -278,11 +278,31 @@ impl VisionService for OllamaVisionService {
             }));
         }
 
+        // For Qwen models, add explicit instruction to avoid reasoning mode
+        let enhanced_prompt = if self.model.contains("qwen") {
+            format!("{}\n\nRespond directly with ONLY the roast/comment itself. Do not include any thinking, reasoning, or analysis - just the final response.", prompt)
+        } else {
+            format!("{}\n\nIMPORTANT: Respond with ONLY the roast itself. No thinking, no analysis, no meta-commentary - just deliver the roast directly.", prompt)
+        };
+
+        let mut content = vec![json!({"type": "text", "text": enhanced_prompt})];
+        if !image_base64.is_empty() {
+            content.push(json!({
+                "type": "image_url",
+                "image_url": {"url": format!("data:image/png;base64,{}", image_base64)}
+            }));
+        }
+
         let body = json!({
             "model": self.model,
             "messages": [{"role": "user", "content": content}],
-            "max_tokens": 256,
-            "temperature": 0.7
+            "max_tokens": 2048,
+            "temperature": 0.7,
+            "stream": false,
+            // Disable reasoning mode for Qwen models
+            "options": {
+                "num_predict": 2048
+            }
         });
 
         let response = self.client
@@ -306,19 +326,85 @@ impl VisionService for OllamaVisionService {
         let openai_response: OpenAIResponse = serde_json::from_str(&response_text)?;
         let text = openai_response.choices.get(0)
             .map(|c| {
-                // Qwen models put response in "reasoning" field, fallback to "content"
+                // Prefer content field first (the actual response)
+                if !c.message.content.is_empty() {
+                    return c.message.content.clone();
+                }
+                // If content is empty but reasoning exists, extract the roast from reasoning
                 if let Some(reasoning) = &c.message.reasoning {
                     if !reasoning.is_empty() {
-                        return reasoning.clone();
+                        // Extract the actual roast from the reasoning field
+                        // Look for the last few sentences that sound like the actual roast
+                        return extract_roast_from_reasoning(reasoning);
                     }
                 }
-                c.message.content.clone()
+                String::new()
             })
             .unwrap_or_default();
 
         tracing::info!("Ollama analysis result: {}", text);
         Ok(text)
     }
+}
+
+/// Extract the actual roast from Qwen's reasoning field
+fn extract_roast_from_reasoning(reasoning: &str) -> String {
+    // Qwen's reasoning is cut off at max_tokens, so the actual roast might be incomplete
+    // The reasoning contains analysis, but we want to extract something useful
+
+    // Strategy: Look for the last complete thought/sentence that sounds like commentary
+    // Skip meta-analysis phrases like "I should", "I need to", "Let me", "Wait"
+
+    let lines: Vec<&str> = reasoning.lines().collect();
+
+    // Find the last few lines that don't contain meta-analysis
+    let mut roast_lines = Vec::new();
+    for line in lines.iter().rev() {
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+
+        // Skip lines that are clearly meta-analysis
+        if line.starts_with("I should")
+            || line.starts_with("I need to")
+            || line.starts_with("Let me")
+            || line.starts_with("Wait,")
+            || line.starts_with("First,")
+            || line.starts_with("Also,")
+            || line.starts_with("The user wants")
+            || line.starts_with("Okay,")
+            || line.contains("let's see")
+            || line.contains("I'll")
+        {
+            continue;
+        }
+
+        roast_lines.push(line);
+
+        // Take up to 3 good lines
+        if roast_lines.len() >= 3 {
+            break;
+        }
+    }
+
+    if roast_lines.is_empty() {
+        // Fallback: just take the last sentence
+        let sentences: Vec<&str> = reasoning
+            .split(|c| c == '.' || c == '!')
+            .filter(|s| !s.trim().is_empty())
+            .collect();
+
+        if let Some(last) = sentences.last() {
+            return last.trim().to_string();
+        }
+
+        return reasoning.to_string();
+    }
+
+    // Reverse to get original order
+    roast_lines.reverse();
+    roast_lines.join(" ")
 }
 
 /// Factory function to create the appropriate vision service

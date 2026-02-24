@@ -463,7 +463,6 @@ pub fn create_tts_service(provider: &str, api_key: String, model: String, voice:
         "murf" => Box::new(MurfTTSService::new(api_key, model, voice)),
         "elevenlabs" => Box::new(ElevenLabsTTSService::new(api_key, model, voice)),
         "inworld" => Box::new(InworldTTSService::new(api_key, model, voice)),
-        "system-tts" => Box::new(SystemTTSService::new(voice)),
         "piper" => Box::new(PiperTTSService::new(voice)),
         _ => Box::new(OpenAITTSService::new(api_key, model, voice)),
     }
@@ -504,27 +503,6 @@ struct GeminiInlineData {
 pub fn decode_base64(input: &str) -> anyhow::Result<Vec<u8>> {
     use base64::{engine::general_purpose::STANDARD, Engine};
     STANDARD.decode(input).map_err(|e| anyhow::anyhow!("Base64 decode error: {}", e))
-}
-
-/// System TTS service (uses OS built-in TTS via Tauri plugin)
-pub struct SystemTTSService {
-    _voice: String,
-}
-
-impl SystemTTSService {
-    pub fn new(voice: String) -> Self {
-        Self { _voice: voice }
-    }
-}
-
-#[async_trait::async_trait]
-impl TTSService for SystemTTSService {
-    async fn synthesize(&self, _text: &str) -> Result<Vec<u8>> {
-        // System TTS doesn't return audio bytes, it plays directly
-        // Return empty vec as placeholder
-        tracing::info!("System TTS would speak: {}", _text);
-        Ok(Vec::new())
-    }
 }
 
 /// Piper TTS service (local neural TTS via subprocess)

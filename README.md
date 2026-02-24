@@ -1,5 +1,4 @@
-# Lotaria (Tauri Edition)
-
+# Lotaria
 A desktop pet that watches your screen and roasts you — rebuilt with **Tauri + Rust + TypeScript**.
 
 ## Why Tauri?

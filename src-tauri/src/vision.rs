@@ -294,10 +294,10 @@ impl VisionService for FoxCodeVisionService {
 
 impl FoxCodeVisionService {
     async fn analyze_gemini(&self, base_url: &str, image_base64: &str, prompt: &str) -> Result<String> {
-        // FoxCode uses /v1 instead of /v1beta
+        // FoxCode Gemini uses query parameter for API key like official Gemini
         let url = format!(
-            "{}/v1/models/{}:generateContent",
-            base_url, self.model
+            "{}/v1beta/models/{}:generateContent?key={}",
+            base_url, self.model, self.api_key
         );
 
         let mut parts = vec![json!({"text": prompt})];
@@ -323,7 +323,6 @@ impl FoxCodeVisionService {
 
         let response = self.client
             .post(&url)
-            .header("x-api-key", &self.api_key)
             .json(&body)
             .send()
             .await?;

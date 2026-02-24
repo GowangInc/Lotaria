@@ -265,6 +265,9 @@ impl VisionService for OllamaVisionService {
     async fn analyze(&self, image_base64: &str, prompt: &str) -> Result<String> {
         let url = "http://localhost:11434/v1/chat/completions";
 
+        tracing::info!("Ollama Vision API call - model: {}, prompt_len: {}, image_len: {}",
+            self.model, prompt.len(), image_base64.len());
+
         let mut content = vec![json!({"type": "text", "text": prompt})];
         if !image_base64.is_empty() {
             content.push(json!({
@@ -286,15 +289,23 @@ impl VisionService for OllamaVisionService {
             .send()
             .await?;
 
-        if !response.status().is_success() {
+        let status = response.status();
+        tracing::info!("Ollama API response status: {}", status);
+
+        if !status.is_success() {
             let error_text = response.text().await?;
+            tracing::error!("Ollama API error: {}", error_text);
             return Err(anyhow!("Ollama API error: {}", error_text));
         }
 
-        let openai_response: OpenAIResponse = response.json().await?;
+        let response_text = response.text().await?;
+        tracing::info!("Ollama API response body: {}", response_text);
+
+        let openai_response: OpenAIResponse = serde_json::from_str(&response_text)?;
         let text = openai_response.choices.get(0)
             .map(|c| c.message.content.clone()).unwrap_or_default();
 
+        tracing::info!("Ollama analysis result: {}", text);
         Ok(text)
     }
 }

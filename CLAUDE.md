@@ -358,3 +358,23 @@ A single-page landing site is located in `website/` (gitignored):
 - TypeScript: Use strict types, avoid `any`
 - Frontend: Vanilla JS/TS, no frameworks
 - State: Prefer immutable updates
+
+
+
+
+## New features to included as we progress
+- Idle animations - Pet does random things when not roasting (yawns, stretches, plays with toys)
+- Pet moods that change - Sometimes grumpy, sometimes supportive, based on time or random chance
+- Pet reactions to specific apps - Different responses when it sees you on Reddit vs coding vs gaming
+- Roast intensity slider - From gentle teasing to absolutely savage
+- Blacklist apps/windows - Don't capture banking, private stuff
+- Custom triggers - Roast when specific apps open or after X minutes idle
+- Activity tracking - "You spent 4 hours on YouTube today"
+- Break reminders - "You've been staring at code for 2 hours, touch grass"
+- Productivity reports - Weekly summary of your digital habits
+- System tray controls - Quick access without opening window
+- Plugin system - Let users create custom behaviors
+- Pet evolution - Pet changes appearance based on your behavior
+- Pet conversations - If you have multiple pets, they talk to each other about you
+- clear log files after 2 days
+

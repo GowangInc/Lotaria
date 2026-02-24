@@ -287,9 +287,13 @@ impl AudioPlayer {
 
     /// Play audio in a non-blocking way
     pub fn play_async(audio_bytes: Vec<u8>) -> Result<()> {
+        tracing::info!("Starting audio playback thread, audio size: {} bytes", audio_bytes.len());
         std::thread::spawn(move || {
+            tracing::info!("Audio playback thread started");
             if let Err(e) = Self::play(&audio_bytes) {
                 tracing::error!("Audio playback error: {}", e);
+            } else {
+                tracing::info!("Audio playback completed successfully");
             }
         });
         Ok(())

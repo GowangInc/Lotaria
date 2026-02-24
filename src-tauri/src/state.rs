@@ -187,6 +187,32 @@ pub static PROVIDER_DEFINITIONS: &[ProviderDefStatic] = &[
         cost_note: "FREE — runs locally on your machine",
         requires_tts_provider: true,
     },
+    ProviderDefStatic {
+        key: "system-tts",
+        name: "System TTS (Local)",
+        env_var: "",
+        docs_url: "",
+        vision_models: &[],
+        tts_models: &["system"],
+        tts_voices: &["default"],
+        live_voices: &[],
+        recommended: false,
+        cost_note: "FREE — uses your OS built-in TTS",
+        requires_tts_provider: false,
+    },
+    ProviderDefStatic {
+        key: "kokoro",
+        name: "Kokoro-82M (Local)",
+        env_var: "",
+        docs_url: "https://huggingface.co/hexgrad/Kokoro-82M",
+        vision_models: &[],
+        tts_models: &["kokoro-82m"],
+        tts_voices: &["af", "af_bella", "af_sarah", "am_adam", "am_michael", "bf_emma", "bf_isabella", "bm_george", "bm_lewis"],
+        live_voices: &[],
+        recommended: false,
+        cost_note: "FREE — high-quality local TTS (~350MB download)",
+        requires_tts_provider: false,
+    },
 ];
 
 /// Static provider definition (for compile-time constants)

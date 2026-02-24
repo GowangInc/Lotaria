@@ -31,6 +31,7 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_positioner::init())
+        .plugin(tauri_plugin_tts::init())
         .setup(|app| {
             tracing::info!("=== Lotaria Starting ===");
             

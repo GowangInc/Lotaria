@@ -102,6 +102,9 @@ async function init() {
   config = await invoke('get_config');
   providers = await invoke('get_providers');
 
+  // Apply Windows theme and accent color
+  applyWindowsTheme();
+
   // Start click-through poller (allows clicking pet while passing through empty areas)
   startClickThroughPoller();
 
@@ -132,6 +135,35 @@ async function init() {
 
   // Setup drag
   setupDrag();
+}
+
+// Apply Windows theme and accent color
+function applyWindowsTheme() {
+  // Detect dark/light mode
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+  // Listen for theme changes
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+    applyWindowsTheme();
+  });
+
+  // Try to get Windows accent color from CSS
+  const accentColor = getComputedStyle(document.documentElement).getPropertyValue('accent-color') || '#e94560';
+
+  // Apply accent color to CSS variables
+  document.documentElement.style.setProperty('--color-primary', accentColor);
+  document.documentElement.style.setProperty('--color-primary-hover', adjustBrightness(accentColor, 20));
+
+  console.log(`Theme applied: ${isDark ? 'dark' : 'light'}, accent: ${accentColor}`);
+}
+
+// Adjust color brightness
+function adjustBrightness(hex: string, percent: number): string {
+  const num = parseInt(hex.replace('#', ''), 16);
+  const r = Math.min(255, Math.max(0, (num >> 16) + percent));
+  const g = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + percent));
+  const b = Math.min(255, Math.max(0, (num & 0x0000FF) + percent));
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
 }
 
 // Eye tracking - follows cursor globally across the entire screen

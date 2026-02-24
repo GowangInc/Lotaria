@@ -175,6 +175,15 @@
       border: 2px solid var(--color-primary);
       position: relative;
       box-shadow: var(--shadow);
+      transition: box-shadow 0.3s ease, filter 0.3s ease;
+    }
+
+    #character:hover .character-body {
+      box-shadow:
+        0 0 20px var(--color-primary),
+        0 0 40px rgba(233, 69, 96, 0.4),
+        var(--shadow);
+      filter: brightness(1.1);
     }
 
     /* Eyes */

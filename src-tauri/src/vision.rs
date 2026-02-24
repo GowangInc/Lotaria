@@ -302,8 +302,8 @@ impl FoxCodeVisionService {
         let mut parts = vec![json!({"text": prompt})];
         if !image_base64.is_empty() {
             parts.push(json!({
-                "inline_data": {
-                    "mime_type": "image/png",
+                "inlineData": {
+                    "mimeType": "image/png",
                     "data": image_base64
                 }
             }));

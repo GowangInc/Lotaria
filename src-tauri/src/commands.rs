@@ -113,14 +113,18 @@ pub async fn roast_now(
 ) -> Result<RoastResult, String> {
     let config = state.config.read().await.clone();
 
-    // Check if we have API keys
+    // Check if we have API keys (skip for Ollama - it's local)
     let vision_provider_def = ProviderDef::get(&config.vision_provider)
         .ok_or_else(|| "Invalid vision provider".to_string())?;
 
-    let vision_api_key = config.api_keys.get(&config.vision_provider)
-        .cloned()
-        .or_else(|| std::env::var(&vision_provider_def.env_var).ok())
-        .ok_or_else(|| "Vision API key not set".to_string())?;
+    let vision_api_key = if config.vision_provider == "ollama" {
+        String::new() // Ollama doesn't need an API key
+    } else {
+        config.api_keys.get(&config.vision_provider)
+            .cloned()
+            .or_else(|| std::env::var(&vision_provider_def.env_var).ok())
+            .ok_or_else(|| "Vision API key not set".to_string())?
+    };
 
     // Move window off-screen before capture
     let original_pos = window.outer_position().map_err(|e| e.to_string())?;
@@ -376,14 +380,18 @@ pub async fn improve_mood(
 ) -> Result<String, String> {
     let config = state.config.read().await.clone();
 
-    // Get vision API key
+    // Get vision API key (skip for Ollama - it's local)
     let vision_provider_def = ProviderDef::get(&config.vision_provider)
         .ok_or_else(|| "Invalid vision provider".to_string())?;
 
-    let vision_api_key = config.api_keys.get(&config.vision_provider)
-        .cloned()
-        .or_else(|| std::env::var(&vision_provider_def.env_var).ok())
-        .ok_or_else(|| "Vision API key not set".to_string())?;
+    let vision_api_key = if config.vision_provider == "ollama" {
+        String::new() // Ollama doesn't need an API key
+    } else {
+        config.api_keys.get(&config.vision_provider)
+            .cloned()
+            .or_else(|| std::env::var(&vision_provider_def.env_var).ok())
+            .ok_or_else(|| "Vision API key not set".to_string())?
+    };
 
     // Create vision service
     let vision_service = create_vision_service(

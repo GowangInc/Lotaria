@@ -51,7 +51,8 @@ tracing-subscriber = "0.3"
 tracing-appender = "0.2"
 
 # TTS - Local models
-# kokoroxide = "0.1"  # Has dependency issues, will implement later
+# kokoro-tiny = { version = "0.1", features = ["playback"] }  # Requires libclang, complex build
+# Will implement via ONNX Runtime directly later
 
 # Random
 rand = "0.8"

@@ -540,11 +540,11 @@ impl KokoroTTSService {
 
 #[async_trait::async_trait]
 impl TTSService for KokoroTTSService {
-    async fn synthesize(&self, text: &str) -> Result<Vec<u8>> {
-        tracing::info!("Kokoro TTS synthesizing with voice: {}", self.voice);
+    async fn synthesize(&self, _text: &str) -> Result<Vec<u8>> {
+        tracing::info!("Kokoro TTS with voice: {}", self.voice);
 
-        // TODO: Implement Kokoro synthesis
-        // For now, return empty to allow compilation
-        Err(anyhow!("Kokoro TTS not yet implemented"))
+        // Kokoro requires complex build dependencies (libclang)
+        // Will implement via ONNX Runtime directly in future update
+        Err(anyhow!("Kokoro TTS coming soon - use System TTS for now"))
     }
 }

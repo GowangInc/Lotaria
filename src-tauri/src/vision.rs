@@ -245,10 +245,116 @@ struct OpenAIMessage {
     content: String,
 }
 
+/// FoxCode vision service (Gemini proxy)
+pub struct FoxCodeVisionService {
+    api_key: String,
+    model: String,
+    client: Client,
+}
+
+impl FoxCodeVisionService {
+    pub fn new(api_key: String, model: String) -> Self {
+        Self {
+            api_key,
+            model,
+            client: Client::new(),
+        }
+    }
+
+    fn model_name(&self) -> String {
+        if self.model.starts_with("gemini-") {
+            self.model.clone()
+        } else {
+            format!("gemini-{}", self.model)
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl VisionService for FoxCodeVisionService {
+    async fn analyze(&self, image_base64: &str, prompt: &str) -> Result<String> {
+        let url = format!(
+            "https://code.newcli.com/gemini/v1beta/models/{}:generateContent?key={}",
+            self.model_name(),
+            self.api_key
+        );
+
+        tracing::info!("FoxCode Vision API call - model: {}, prompt_len: {}, image_len: {}",
+            self.model_name(), prompt.len(), image_base64.len());
+
+        let mut parts = vec![json!({"text": prompt})];
+        if !image_base64.is_empty() {
+            parts.push(json!({
+                "inline_data": {
+                    "mime_type": "image/png",
+                    "data": image_base64
+                }
+            }));
+        }
+
+        let body = json!({
+            "contents": [{
+                "parts": parts
+            }],
+            "generationConfig": {
+                "maxOutputTokens": 2048,
+                "temperature": 0.7
+            }
+        });
+
+        let response = self
+            .client
+            .post(&url)
+            .json(&body)
+            .send()
+            .await?;
+
+        let status = response.status();
+        let response_text = response.text().await?;
+
+        tracing::info!("FoxCode Vision API response status: {}", status);
+
+        if !status.is_success() {
+            tracing::error!("FoxCode Vision API error: {}", response_text);
+            if response_text.contains("429") || response_text.contains("rate limit") {
+                return Err(anyhow!("Rate limit exceeded. Please try again later."));
+            }
+            return Err(anyhow!("FoxCode API error: {}", response_text));
+        }
+
+        let gemini_response: GeminiResponse = match serde_json::from_str(&response_text) {
+            Ok(r) => r,
+            Err(e) => {
+                tracing::error!("Failed to parse FoxCode vision response: {}. Response: {}", e, response_text);
+                return Err(anyhow!("Failed to parse response: {}", e));
+            }
+        };
+
+        let parts = gemini_response
+            .candidates
+            .get(0)
+            .map(|c| &c.content.parts)
+            .cloned()
+            .unwrap_or_default();
+
+        let non_thought: Vec<_> = parts.iter().filter(|p| !p.thought).collect();
+        let text = if !non_thought.is_empty() {
+            non_thought.iter().map(|p| p.text.as_str()).collect::<Vec<_>>().join("")
+        } else {
+            parts.iter().map(|p| p.text.as_str()).collect::<Vec<_>>().join("")
+        };
+
+        tracing::info!("FoxCode Vision analysis result ({} parts, {} thought): {}",
+            parts.len(), parts.iter().filter(|p| p.thought).count(), text);
+        Ok(text)
+    }
+}
+
 /// Factory function to create the appropriate vision service
 pub fn create_vision_service(provider: &str, api_key: String, model: String) -> Box<dyn VisionService> {
     match provider {
         "gemini" => Box::new(GeminiVisionService::new(api_key, model)),
+        "foxcode" => Box::new(FoxCodeVisionService::new(api_key, model)),
         _ => Box::new(OpenAIVisionService::new(api_key, model, provider)),
     }
 }

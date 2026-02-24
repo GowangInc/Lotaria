@@ -85,6 +85,7 @@ cargo tauri build
 | Provider | Vision | TTS | Cost | Notes |
 |----------|--------|-----|------|-------|
 | **Google Gemini** | ✅ | ✅ | FREE | **Recommended** — vision + TTS included |
+| **FoxCode** | ✅ | ⚠️ | $ ~¥0.12-0.35/M | Gemini proxy, TTS untested |
 | **Inworld AI** | ❌ | ✅ | $ ~$5-10/M chars | Cheapest TTS, tts-1.5-mini/max, 7 voices |
 | **Groq** | ✅ | ❌ | $ ~$1-2.50/mo | Fastest inference, needs separate TTS provider |
 | **OpenAI** | ✅ | ✅ | $$ ~$1.50-5/mo | gpt-4.1-mini/4o, gpt-4o-mini-tts/tts-1 |
@@ -112,6 +113,16 @@ API keys entered in-app are persisted to config and override environment variabl
 - `gemini-2.5-flash-lite-preview-tts` — Cheapest TTS option
 
 **Voices** (30 total): Kore, Charon, Puck, Fenrir, Aoede, Leda, Orus, Zephyr, Achernar, Achird, Algenib, Algieba, Alnilam, Autonoe, Callirrhoe, Despina, Enceladus, Erinome, Gacrux, Iapetus, Laomedeia, Pulcherrima, Rasalgethi, Sadachbia, Sadaltager, Schedar, Sulafat, Umbriel, Vindemiatrix, Zubenelgenubi
+
+### FoxCode (Gemini Proxy)
+
+- **API**: `https://code.newcli.com/gemini/v1beta/models/{model}:generateContent` (Gemini-compatible proxy)
+- **Auth**: API key via `?key=` query parameter
+- **Vision Models**: gemini-3-pro, gemini-3-pro-high, gemini-3-pro-preview, gemini-3-flash, gemini-3-flash-preview, gemini-2.5-pro, gemini-2.5-flash, gemini-2.5-flash-lite
+- **TTS Models**: gemini-2.5-flash-preview-tts, gemini-2.5-pro-preview-tts, gemini-2.5-flash-lite-preview-tts (⚠️ UNTESTED)
+- **Voices**: Same as Gemini (30 voices)
+- **Cost**: ~¥0.12-0.35 per million tokens (significantly cheaper than official Gemini)
+- **Warning**: Third-party proxy service - TTS endpoints may not be supported. Test before relying on it.
 
 ### Murf AI
 

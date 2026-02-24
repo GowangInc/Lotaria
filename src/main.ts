@@ -157,6 +157,7 @@ function startEyeTracking() {
         const eyeCenterX = rect.left + rect.width / 2;
         const eyeCenterY = rect.top + rect.height / 2;
 
+        // Calculate direction from THIS eye's center to cursor (independent tracking)
         const dx = localX - eyeCenterX;
         const dy = localY - eyeCenterY;
 

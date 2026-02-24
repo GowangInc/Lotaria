@@ -174,6 +174,38 @@ pub static PROVIDER_DEFINITIONS: &[ProviderDefStatic] = &[
         cost_note: "$ — $5-10/M chars (cheapest TTS)",
         requires_tts_provider: false,
     },
+    ProviderDefStatic {
+        key: "foxcode",
+        name: "FoxCode (Gemini Proxy)",
+        env_var: "FOXCODE_API_KEY",
+        docs_url: "https://code.newcli.com",
+        vision_models: &[
+            "gemini-3-pro",
+            "gemini-3-pro-high",
+            "gemini-3-pro-preview",
+            "gemini-3-flash",
+            "gemini-3-flash-preview",
+            "gemini-2.5-pro",
+            "gemini-2.5-flash",
+            "gemini-2.5-flash-lite",
+        ],
+        tts_models: &[
+            "gemini-2.5-flash-preview-tts",
+            "gemini-2.5-pro-preview-tts",
+            "gemini-2.5-flash-lite-preview-tts",
+        ],
+        tts_voices: &[
+            "Kore", "Charon", "Puck", "Fenrir", "Aoede", "Leda", "Orus", "Zephyr",
+            "Achernar", "Achird", "Algenib", "Algieba", "Alnilam", "Autonoe",
+            "Callirrhoe", "Despina", "Enceladus", "Erinome", "Gacrux", "Iapetus",
+            "Laomedeia", "Pulcherrima", "Rasalgethi", "Sadachbia", "Sadaltager",
+            "Schedar", "Sulafat", "Umbriel", "Vindemiatrix", "Zubenelgenubi",
+        ],
+        live_voices: &["Puck", "Charon", "Kore", "Fenrir", "Aoede"],
+        recommended: false,
+        cost_note: "$ — ~¥0.12-0.35/M tokens (TTS untested)",
+        requires_tts_provider: false,
+    },
 ];
 
 /// Static provider definition (for compile-time constants)

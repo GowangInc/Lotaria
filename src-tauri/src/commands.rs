@@ -341,7 +341,7 @@ pub fn get_moods() -> Vec<(String, String)> {
 pub fn get_intervals() -> Vec<(String, String)> {
     INTERVAL_PRESETS
         .iter()
-        .map(|(key, (min, max))| {
+        .map(|(key, (_min, _max))| {
             let label = match *key {
                 "often" => "Often (5-10 min)",
                 "frequent" => "Frequent (10-20 min)",

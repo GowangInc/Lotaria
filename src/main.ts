@@ -486,7 +486,7 @@ function buildVisionUI() {
 
   provSelect.innerHTML = '';
   providers.forEach(prov => {
-    if (prov.vision_models.length === 0) return;
+    if (prov.vision_models.length === 0 && prov.key !== 'ollama') return;
     const opt = document.createElement('option');
     opt.value = prov.key;
     opt.textContent = prov.name;
@@ -494,18 +494,46 @@ function buildVisionUI() {
     provSelect.appendChild(opt);
   });
 
-  function updateModels() {
+  async function updateModels() {
     const prov = providers.find(p => p.key === provSelect.value);
     if (!prov) return;
 
     modelSelect.innerHTML = '';
-    prov.vision_models.forEach(model => {
-      const opt = document.createElement('option');
-      opt.value = model;
-      opt.textContent = model;
-      if (model === config.vision_model) opt.selected = true;
-      modelSelect.appendChild(opt);
-    });
+
+    // For Ollama, fetch models dynamically
+    if (prov.key === 'ollama') {
+      try {
+        const ollamaModels = await invoke<string[]>('get_ollama_models');
+        if (ollamaModels.length === 0) {
+          const opt = document.createElement('option');
+          opt.value = '';
+          opt.textContent = 'No vision models found - install llama3.2-vision';
+          modelSelect.appendChild(opt);
+        } else {
+          ollamaModels.forEach(model => {
+            const opt = document.createElement('option');
+            opt.value = model;
+            opt.textContent = model;
+            if (model === config.vision_model) opt.selected = true;
+            modelSelect.appendChild(opt);
+          });
+        }
+      } catch (e) {
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = 'Ollama not running - install from ollama.com';
+        modelSelect.appendChild(opt);
+      }
+    } else {
+      // Static models for other providers
+      prov.vision_models.forEach(model => {
+        const opt = document.createElement('option');
+        opt.value = model;
+        opt.textContent = model;
+        if (model === config.vision_model) opt.selected = true;
+        modelSelect.appendChild(opt);
+      });
+    }
   }
 
   provSelect.addEventListener('change', updateModels);

@@ -142,6 +142,7 @@ fn main() {
             get_cursor_position,
             get_accent_color,
             set_ignore_cursor_events,
+            get_ollama_models,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

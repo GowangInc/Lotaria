@@ -245,10 +245,65 @@ struct OpenAIMessage {
     content: String,
 }
 
+/// Ollama vision service (local models)
+pub struct OllamaVisionService {
+    model: String,
+    client: Client,
+}
+
+impl OllamaVisionService {
+    pub fn new(model: String) -> Self {
+        Self {
+            model,
+            client: Client::new(),
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl VisionService for OllamaVisionService {
+    async fn analyze(&self, image_base64: &str, prompt: &str) -> Result<String> {
+        let url = "http://localhost:11434/v1/chat/completions";
+
+        let mut content = vec![json!({"type": "text", "text": prompt})];
+        if !image_base64.is_empty() {
+            content.push(json!({
+                "type": "image_url",
+                "image_url": {"url": format!("data:image/png;base64,{}", image_base64)}
+            }));
+        }
+
+        let body = json!({
+            "model": self.model,
+            "messages": [{"role": "user", "content": content}],
+            "max_tokens": 256,
+            "temperature": 0.7
+        });
+
+        let response = self.client
+            .post(url)
+            .json(&body)
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            let error_text = response.text().await?;
+            return Err(anyhow!("Ollama API error: {}", error_text));
+        }
+
+        let openai_response: OpenAIResponse = response.json().await?;
+        let text = openai_response.choices.get(0)
+            .map(|c| c.message.content.clone()).unwrap_or_default();
+
+        Ok(text)
+    }
+}
+
 /// Factory function to create the appropriate vision service
 pub fn create_vision_service(provider: &str, api_key: String, model: String) -> Box<dyn VisionService> {
     match provider {
         "gemini" => Box::new(GeminiVisionService::new(api_key, model)),
+        "ollama" => Box::new(OllamaVisionService::new(model)),
         _ => Box::new(OpenAIVisionService::new(api_key, model, provider)),
     }
 }

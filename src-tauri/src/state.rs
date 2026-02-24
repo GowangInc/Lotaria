@@ -174,6 +174,19 @@ pub static PROVIDER_DEFINITIONS: &[ProviderDefStatic] = &[
         cost_note: "$ — $5-10/M chars (cheapest TTS)",
         requires_tts_provider: false,
     },
+    ProviderDefStatic {
+        key: "ollama",
+        name: "Ollama (Local)",
+        env_var: "",
+        docs_url: "https://ollama.com/download",
+        vision_models: &[], // Dynamically populated from Ollama API
+        tts_models: &[],
+        tts_voices: &[],
+        live_voices: &[],
+        recommended: false,
+        cost_note: "FREE — runs locally on your machine",
+        requires_tts_provider: true,
+    },
 ];
 
 /// Static provider definition (for compile-time constants)

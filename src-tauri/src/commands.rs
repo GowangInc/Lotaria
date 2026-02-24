@@ -492,6 +492,51 @@ pub fn set_ignore_cursor_events(window: tauri::WebviewWindow, ignore: bool) -> R
     window.set_ignore_cursor_events(ignore).map_err(|e| e.to_string())
 }
 
+/// Check if Ollama is running and fetch available models
+#[tauri::command]
+pub async fn get_ollama_models() -> Result<Vec<String>, String> {
+    let client = reqwest::Client::new();
+
+    // Check if Ollama is running
+    let response = client
+        .get("http://localhost:11434/api/tags")
+        .timeout(std::time::Duration::from_secs(2))
+        .send()
+        .await
+        .map_err(|e| format!("Ollama not running: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err("Ollama API error".to_string());
+    }
+
+    #[derive(serde::Deserialize)]
+    struct OllamaModel {
+        name: String,
+    }
+
+    #[derive(serde::Deserialize)]
+    struct OllamaResponse {
+        models: Vec<OllamaModel>,
+    }
+
+    let ollama_response: OllamaResponse = response.json().await
+        .map_err(|e| format!("Failed to parse Ollama response: {}", e))?;
+
+    // Filter for vision models (models with "vision" or "llava" or "minicpm" in name)
+    let vision_models: Vec<String> = ollama_response.models
+        .into_iter()
+        .filter(|m| {
+            let name_lower = m.name.to_lowercase();
+            name_lower.contains("vision") ||
+            name_lower.contains("llava") ||
+            name_lower.contains("minicpm")
+        })
+        .map(|m| m.name)
+        .collect();
+
+    Ok(vision_models)
+}
+
 fn b64_encode(input: &[u8]) -> String {
     use base64::{engine::general_purpose::STANDARD, Engine};
     STANDARD.encode(input)

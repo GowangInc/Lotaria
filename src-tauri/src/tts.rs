@@ -464,7 +464,7 @@ pub fn create_tts_service(provider: &str, api_key: String, model: String, voice:
         "elevenlabs" => Box::new(ElevenLabsTTSService::new(api_key, model, voice)),
         "inworld" => Box::new(InworldTTSService::new(api_key, model, voice)),
         "system-tts" => Box::new(SystemTTSService::new(voice)),
-        "kokoro" => Box::new(KokoroTTSService::new(voice)),
+        "piper" => Box::new(PiperTTSService::new(voice)),
         _ => Box::new(OpenAITTSService::new(api_key, model, voice)),
     }
 }
@@ -527,24 +527,173 @@ impl TTSService for SystemTTSService {
     }
 }
 
-/// Kokoro-82M TTS service (local neural TTS)
-pub struct KokoroTTSService {
+/// Piper TTS service (local neural TTS via subprocess)
+pub struct PiperTTSService {
     voice: String,
 }
 
-impl KokoroTTSService {
+impl PiperTTSService {
     pub fn new(voice: String) -> Self {
         Self { voice }
     }
 }
 
 #[async_trait::async_trait]
-impl TTSService for KokoroTTSService {
-    async fn synthesize(&self, _text: &str) -> Result<Vec<u8>> {
-        tracing::info!("Kokoro TTS with voice: {}", self.voice);
+impl TTSService for PiperTTSService {
+    async fn synthesize(&self, text: &str) -> Result<Vec<u8>> {
+        tracing::info!("Piper TTS synthesizing with voice: {}", self.voice);
 
-        // Kokoro requires complex build dependencies (libclang)
-        // Will implement via ONNX Runtime directly in future update
-        Err(anyhow!("Kokoro TTS coming soon - use System TTS for now"))
+        // Get cache directory for Piper
+        let cache_dir = dirs::cache_dir()
+            .ok_or_else(|| anyhow!("Could not find cache directory"))?
+            .join("lotaria")
+            .join("piper");
+
+        std::fs::create_dir_all(&cache_dir)?;
+
+        // Ensure piper binary exists
+        let piper_path = ensure_piper_binary(&cache_dir).await?;
+
+        // Ensure voice model exists
+        let model_path = ensure_piper_model(&cache_dir, &self.voice).await?;
+
+        // Create temp file for output
+        let output_path = cache_dir.join(format!("output_{}.wav", chrono::Local::now().timestamp()));
+
+        // Run piper
+        let mut child = tokio::process::Command::new(&piper_path)
+            .arg("--model")
+            .arg(&model_path)
+            .arg("--output_file")
+            .arg(&output_path)
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()?;
+
+        // Write text to stdin
+        if let Some(mut stdin) = child.stdin.take() {
+            use tokio::io::AsyncWriteExt;
+            stdin.write_all(text.as_bytes()).await?;
+            drop(stdin); // Close stdin to signal EOF
+        }
+
+        // Wait for process to complete
+        let output = child.wait_with_output().await?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            tracing::error!("Piper process failed: {}", stderr);
+            return Err(anyhow!("Piper synthesis failed: {}", stderr));
+        }
+
+        // Read output file
+        let audio_bytes = std::fs::read(&output_path)?;
+
+        // Clean up temp file
+        let _ = std::fs::remove_file(&output_path);
+
+        tracing::info!("Piper synthesis complete: {} bytes", audio_bytes.len());
+        Ok(audio_bytes)
     }
+}
+
+/// Get path to Piper binary (bundled or in cache)
+async fn ensure_piper_binary(_cache_dir: &std::path::Path) -> Result<std::path::PathBuf> {
+    let binary_name = if cfg!(target_os = "windows") {
+        "piper.exe"
+    } else {
+        "piper"
+    };
+
+    // Check common development and bundled locations
+    let search_paths = vec![
+        std::path::PathBuf::from(format!("./src-tauri/binaries/{}", binary_name)),
+        std::path::PathBuf::from(format!("./binaries/{}", binary_name)),
+        std::path::PathBuf::from(format!("../binaries/{}", binary_name)),
+        std::path::PathBuf::from(format!("../../binaries/{}", binary_name)),
+    ];
+
+    for path in search_paths {
+        if path.exists() {
+            tracing::info!("Found Piper binary at {:?}", path);
+            return Ok(path);
+        }
+    }
+
+    Err(anyhow!(
+        "Piper binary not found. Please:\n\
+         1. Download Piper from https://github.com/rhasspy/piper/releases\n\
+         2. Place piper{} in src-tauri/binaries/\n\
+         3. Or use System TTS as an alternative",
+        if cfg!(target_os = "windows") { ".exe" } else { "" }
+    ))
+}
+
+/// Ensure Piper voice model exists (bundled or download)
+async fn ensure_piper_model(cache_dir: &std::path::Path, voice: &str) -> Result<std::path::PathBuf> {
+    let model_filename = format!("{}.onnx", voice);
+    let config_filename = format!("{}.onnx.json", voice);
+
+    // Check bundled locations first
+    let bundled_paths = vec![
+        (std::path::PathBuf::from(format!("./src-tauri/models/{}", model_filename)),
+         std::path::PathBuf::from(format!("./src-tauri/models/{}", config_filename))),
+        (std::path::PathBuf::from(format!("./models/{}", model_filename)),
+         std::path::PathBuf::from(format!("./models/{}", config_filename))),
+        (std::path::PathBuf::from(format!("../models/{}", model_filename)),
+         std::path::PathBuf::from(format!("../models/{}", config_filename))),
+    ];
+
+    for (model_path, config_path) in bundled_paths {
+        if model_path.exists() && config_path.exists() {
+            tracing::info!("Found bundled Piper model at {:?}", model_path);
+            return Ok(model_path);
+        }
+    }
+
+    // Check cache directory
+    let model_path = cache_dir.join(&model_filename);
+    let config_path = cache_dir.join(&config_filename);
+
+    if model_path.exists() && config_path.exists() {
+        tracing::info!("Piper model already cached at {:?}", model_path);
+        return Ok(model_path);
+    }
+
+    tracing::info!("Downloading Piper voice model: {}", voice);
+
+    // Download from Hugging Face
+    let base_url = format!(
+        "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/{}/",
+        voice
+    );
+
+    let client = Client::new();
+
+    // Download .onnx model
+    let model_url = format!("{}{}.onnx", base_url, voice);
+    tracing::info!("Downloading model from: {}", model_url);
+
+    let response = client.get(&model_url).send().await?;
+    if !response.status().is_success() {
+        return Err(anyhow!("Failed to download model: HTTP {}", response.status()));
+    }
+    let model_bytes = response.bytes().await?;
+    std::fs::write(&model_path, model_bytes)?;
+    tracing::info!("Model downloaded: {} bytes", model_path.metadata()?.len());
+
+    // Download .onnx.json config
+    let config_url = format!("{}{}.onnx.json", base_url, voice);
+    tracing::info!("Downloading config from: {}", config_url);
+
+    let response = client.get(&config_url).send().await?;
+    if !response.status().is_success() {
+        return Err(anyhow!("Failed to download config: HTTP {}", response.status()));
+    }
+    let config_bytes = response.bytes().await?;
+    std::fs::write(&config_path, config_bytes)?;
+    tracing::info!("Config downloaded: {} bytes", config_path.metadata()?.len());
+
+    Ok(model_path)
 }

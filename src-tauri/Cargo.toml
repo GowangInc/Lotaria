@@ -67,6 +67,10 @@ png = "0.18"
 bytemuck = "1.21"
 byteorder = "1.5"
 
+# Archive extraction
+flate2 = "1.0"
+tar = "0.4"
+
 [features]
 default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]

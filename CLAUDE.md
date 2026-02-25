@@ -225,7 +225,10 @@ dist/                   # Built frontend (gitignored)
 - `VisionService` trait - async analyze(image, prompt) -> text
 - `GeminiVisionService` - Uses Gemini generateContent API
 - `OpenAIVisionService` - OpenAI-compatible chat completions
+- `OllamaVisionService` - Local Ollama models (131k context, 40k predict tokens)
 - `create_vision_service()` - Factory function
+- `strip_thinking_from_content()` - Multi-strategy stripping of Qwen chain-of-thought leaks (quoted draft extraction → draft marker splitting → sentence-level filtering)
+- `extract_roast_from_reasoning()` - Fallback extraction from reasoning field
 
 **TTS** (`tts.rs`):
 - `TTSService` trait - async synthesize(text) -> audio bytes

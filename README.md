@@ -207,9 +207,11 @@ The pet automatically detects when your cursor is over it (within the 100×100px
 
 ### Rust Backend
 - **State Management**: JSON-based config and history persistence
-- **Screen Capture**: Cross-platform via `xcap` crate
-- **Vision APIs**: Direct HTTP calls via `reqwest`
-- **TTS APIs**: Gemini (`google-genai` style) and OpenAI-compatible
+- **Screen Capture**: Cross-platform via `xcap` crate, with perceptual hashing for change detection
+- **Screen Context**: Captures foreground app, open windows, idle time per observation; diffs injected into prompts
+- **Vision APIs**: Direct HTTP calls via `reqwest` (Gemini, OpenAI, Groq, Anthropic, Ollama)
+- **Ollama**: Chain-of-thought stripping for Qwen models (multi-strategy: quoted draft extraction, marker splitting, sentence filtering)
+- **TTS APIs**: Gemini, OpenAI, Murf AI, ElevenLabs, Inworld AI, Piper (local)
 - **Audio**: Playback via `rodio`
 
 ### TypeScript Frontend

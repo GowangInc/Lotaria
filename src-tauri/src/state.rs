@@ -273,6 +273,8 @@ pub struct Config {
     pub roast_intensity: u8,
     #[serde(default)]
     pub mood_rotation: String,
+    #[serde(default)]
+    pub blacklist: Vec<String>,
 }
 
 fn default_first_run() -> bool {
@@ -307,6 +309,7 @@ impl Default for Config {
             gemini_free_tier: true,
             roast_intensity: 5,
             mood_rotation: String::new(),
+            blacklist: Vec::new(),
         }
     }
 }

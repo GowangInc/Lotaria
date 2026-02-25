@@ -22,6 +22,7 @@ interface Config {
   gemini_free_tier: boolean;
   roast_intensity: number;
   mood_rotation: string;
+  blacklist: string[];
 }
 
 interface ProviderDef {
@@ -71,6 +72,7 @@ let config: Config = {
   gemini_free_tier: true,
   roast_intensity: 5,
   mood_rotation: '',
+  blacklist: [],
 };
 
 let providers: ProviderDef[] = [];
@@ -478,6 +480,12 @@ async function showSettings() {
     buildMoodUI();
     buildPetStyleUI();
     updateCostEstimator();
+
+    // Populate blacklist
+    const blacklistInput = document.getElementById('blacklist-input') as HTMLTextAreaElement;
+    if (blacklistInput) {
+      blacklistInput.value = (config.blacklist || []).join('\n');
+    }
 
     // Tab switching
     if (!tabsInitialized) {
@@ -995,6 +1003,8 @@ function setupEventListeners() {
     await invoke('set_config', { key: 'roast_intensity', value: intensity });
     const moodRotation = (document.getElementById('mood-rotation-select') as HTMLSelectElement)?.value || '';
     await invoke('set_config', { key: 'mood_rotation', value: moodRotation });
+    const blacklistText = (document.getElementById('blacklist-input') as HTMLTextAreaElement)?.value || '';
+    await invoke('set_config', { key: 'blacklist', value: blacklistText });
 
     // Reload config
     config = await invoke('get_config');

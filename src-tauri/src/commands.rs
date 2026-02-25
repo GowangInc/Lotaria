@@ -99,6 +99,14 @@ pub async fn set_config(
         "gemini_free_tier" => config.gemini_free_tier = value.as_bool().unwrap_or(true),
         "roast_intensity" => config.roast_intensity = value.as_u64().unwrap_or(5).min(10) as u8,
         "mood_rotation" => config.mood_rotation = value.as_str().unwrap_or("").to_string(),
+        "blacklist" => {
+            config.blacklist = value.as_str()
+                .unwrap_or("")
+                .split('\n')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect();
+        }
         "first_run" => config.first_run = value.as_bool().unwrap_or(false),
         _ => {}
     }
@@ -122,6 +130,25 @@ pub async fn roast_now(
         let idx = rand::thread_rng().gen_range(0..MOOD_PROMPTS.len());
         config.mood = MOOD_PROMPTS[idx].0.to_string();
         tracing::info!("Mood rotated to: {}", config.mood);
+    }
+
+    // Check blacklist — skip roast if foreground window matches
+    if !config.blacklist.is_empty() {
+        if let Some(title) = get_foreground_window_title() {
+            let title_lower = title.to_lowercase();
+            for entry in &config.blacklist {
+                if !entry.is_empty() && title_lower.contains(&entry.to_lowercase()) {
+                    tracing::info!("Blacklisted window detected: '{}' matches '{}'", title, entry);
+                    return Ok(RoastResult {
+                        text: String::new(),
+                        audio_base64: None,
+                        audio_duration: 0.0,
+                        timestamp: chrono::Local::now().timestamp(),
+                        error: Some("skipped_blacklist".to_string()),
+                    });
+                }
+            }
+        }
     }
 
     // Check if we have API keys (skip for local providers)
@@ -533,6 +560,36 @@ pub fn get_accent_color() -> Result<String, String> {
 pub fn set_ignore_cursor_events(window: tauri::WebviewWindow, ignore: bool) -> Result<(), String> {
     tracing::info!("Setting ignore_cursor_events to: {}", ignore);
     window.set_ignore_cursor_events(ignore).map_err(|e| e.to_string())
+}
+
+/// Get the foreground window title (for blacklist checking)
+fn get_foreground_window_title() -> Option<String> {
+    #[cfg(target_os = "windows")]
+    {
+        extern "system" {
+            fn GetForegroundWindow() -> isize;
+            fn GetWindowTextW(hWnd: isize, lpString: *mut u16, nMaxCount: i32) -> i32;
+        }
+
+        unsafe {
+            let hwnd = GetForegroundWindow();
+            if hwnd == 0 {
+                return None;
+            }
+            let mut buf = [0u16; 512];
+            let len = GetWindowTextW(hwnd, buf.as_mut_ptr(), buf.len() as i32);
+            if len > 0 {
+                Some(String::from_utf16_lossy(&buf[..len as usize]))
+            } else {
+                None
+            }
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        None
+    }
 }
 
 /// Check if Ollama is running and fetch available models

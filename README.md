@@ -17,6 +17,7 @@ A desktop pet that watches your screen and roasts you — rebuilt with **Tauri +
 - **Multi-provider AI** — Gemini (recommended), OpenAI, Anthropic, Groq, Ollama (local)
 - **Local & Cloud TTS** — Piper TTS (bundled, offline), Gemini TTS (free), OpenAI, Murf AI, ElevenLabs, Inworld AI
 - **Custom moods** — roast, helpful, encouraging, sarcastic, zen, anime, gordon, therapist, detective, hype, or create your own with AI improvement
+- **Intensity control** — slider from gentle (1) to brutal (10) adjusts how hard the pet goes
 - **10 pet designs** — cat, ghost, robot, blob, owl, alien, pumpkin, cloud, octopus, or classic box
 - **Smooth animations** — avatar collapses during screenshot, expands on return
 - **Context memory** — remembers past roasts to call out patterns

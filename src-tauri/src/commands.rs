@@ -97,6 +97,7 @@ pub async fn set_config(
         "custom_mood" => config.custom_mood = value.as_str().unwrap_or("").to_string(),
         "pet_style" => config.pet_style = value.as_str().unwrap_or("default").to_string(),
         "gemini_free_tier" => config.gemini_free_tier = value.as_bool().unwrap_or(true),
+        "roast_intensity" => config.roast_intensity = value.as_u64().unwrap_or(5).min(10) as u8,
         "first_run" => config.first_run = value.as_bool().unwrap_or(false),
         _ => {}
     }

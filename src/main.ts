@@ -19,6 +19,7 @@ interface Config {
   custom_mood: string;
   pet_style: string;
   gemini_free_tier: boolean;
+  roast_intensity: number;
 }
 
 interface ProviderDef {
@@ -66,6 +67,7 @@ let config: Config = {
   custom_mood: '',
   pet_style: 'default',
   gemini_free_tier: true,
+  roast_intensity: 5,
 };
 
 let providers: ProviderDef[] = [];
@@ -690,6 +692,17 @@ async function buildMoodUI() {
     }
     toggleCustomSection();
     moodSelect.addEventListener('change', toggleCustomSection);
+
+    // Intensity slider
+    const intensitySlider = document.getElementById('intensity-slider') as HTMLInputElement;
+    const intensityValue = document.getElementById('intensity-value') as HTMLElement;
+    if (intensitySlider && intensityValue) {
+      intensitySlider.value = String(config.roast_intensity || 5);
+      intensityValue.textContent = intensitySlider.value;
+      intensitySlider.addEventListener('input', () => {
+        intensityValue.textContent = intensitySlider.value;
+      });
+    }
   } catch (e) {
     console.error('Failed to load moods:', e);
   }
@@ -941,6 +954,7 @@ function setupEventListeners() {
     const ttsVoice = (document.getElementById('tts-voice-select') as HTMLSelectElement).value;
     const mood = (document.getElementById('mood-select') as HTMLSelectElement)?.value;
     const customMood = (document.getElementById('custom-mood-input') as HTMLTextAreaElement)?.value || '';
+    const intensity = parseInt((document.getElementById('intensity-slider') as HTMLInputElement)?.value || '5');
 
     if (interval) await invoke('set_config', { key: 'interval', value: interval });
     await invoke('set_config', { key: 'vision_provider', value: visionProv });
@@ -950,6 +964,7 @@ function setupEventListeners() {
     await invoke('set_config', { key: 'tts_voice', value: ttsVoice });
     if (mood) await invoke('set_config', { key: 'mood', value: mood });
     await invoke('set_config', { key: 'custom_mood', value: customMood });
+    await invoke('set_config', { key: 'roast_intensity', value: intensity });
 
     // Reload config
     config = await invoke('get_config');

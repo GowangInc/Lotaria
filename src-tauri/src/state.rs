@@ -269,6 +269,8 @@ pub struct Config {
     pub pet_style: String,
     #[serde(default = "default_gemini_free_tier")]
     pub gemini_free_tier: bool,
+    #[serde(default = "default_roast_intensity")]
+    pub roast_intensity: u8,
 }
 
 fn default_first_run() -> bool {
@@ -277,6 +279,10 @@ fn default_first_run() -> bool {
 
 fn default_gemini_free_tier() -> bool {
     true
+}
+
+fn default_roast_intensity() -> u8 {
+    5
 }
 
 impl Default for Config {
@@ -297,6 +303,7 @@ impl Default for Config {
             custom_mood: String::new(),
             pet_style: "default".to_string(),
             gemini_free_tier: true,
+            roast_intensity: 5,
         }
     }
 }
@@ -635,6 +642,26 @@ impl StateManager {
         let time_str = now.format("%I:%M %p (%A, %B %d, %Y)").to_string();
 
         let mut full_prompt = format!("{}\n\nCURRENT TIME: {}", prompt, time_str);
+
+        // Inject intensity instruction (1=gentle, 5=default, 10=maximum)
+        let intensity = config.roast_intensity.clamp(1, 10);
+        if intensity != 5 {
+            let intensity_desc = match intensity {
+                1 => "Be extremely gentle and kind. Barely any edge.",
+                2 => "Be very mild. Light teasing at most.",
+                3 => "Be somewhat soft. Keep it lighthearted.",
+                4 => "Be slightly toned down from normal.",
+                6 => "Be a bit more intense than usual.",
+                7 => "Be noticeably sharper and more cutting.",
+                8 => "Be very intense. Don't hold back much.",
+                9 => "Be extremely savage. Go hard.",
+                10 => "MAXIMUM INTENSITY. Absolutely brutal, no mercy.",
+                _ => "",
+            };
+            if !intensity_desc.is_empty() {
+                full_prompt.push_str(&format!("\n\nINTENSITY ({}/10): {}", intensity, intensity_desc));
+            }
+        }
 
         if !history.is_empty() {
             let recent: Vec<_> = history.iter().rev().take(5).rev().collect();

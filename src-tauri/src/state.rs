@@ -794,15 +794,15 @@ impl StateManager {
         }
 
         if !history.is_empty() {
-            let recent: Vec<_> = history.iter().rev().take(5).rev().collect();
+            let recent: Vec<_> = history.iter().rev().take(3).rev().collect();
             let history_text = recent
                 .iter()
                 .map(|h| format!("- [{}] {}", h.time, h.roast))
                 .collect::<Vec<_>>()
                 .join("\n");
-            
+
             full_prompt.push_str(&format!(
-                "\n\nPREVIOUS OBSERVATIONS (use for context/callbacks):\n{}",
+                "\n\nPAST COMMENTS (background only — do NOT rehash these, focus on what's on screen NOW. Only reference as a brief callback if something connects naturally):\n{}",
                 history_text
             ));
         }
@@ -830,13 +830,13 @@ impl StateManager {
         let diff_text = diff.to_prompt_text();
         if !diff_text.is_empty() {
             // Insert BEFORE the history section so the model sees context first
-            if let Some(idx) = full_prompt.find("\n\nPREVIOUS OBSERVATIONS") {
+            if let Some(idx) = full_prompt.find("\n\nPAST COMMENTS") {
                 full_prompt.insert_str(idx, &format!(
-                    "\n\nWHAT CHANGED SINCE LAST CHECK:\n{}", diff_text
+                    "\n\nCURRENT SCREEN STATE:\n{}", diff_text
                 ));
             } else {
                 full_prompt.push_str(&format!(
-                    "\n\nWHAT CHANGED SINCE LAST CHECK:\n{}", diff_text
+                    "\n\nCURRENT SCREEN STATE:\n{}", diff_text
                 ));
             }
         }

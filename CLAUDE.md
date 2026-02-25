@@ -21,6 +21,7 @@ Lotaria is a desktop pet that sits on your screen, periodically captures the scr
 - **Mood Rotation**: Optional random mood selection per roast (configurable in Settings > Mood)
 - **Blacklist**: Skip roasts when specific apps/windows are in the foreground (partial title match)
 - **Break Reminders**: Configurable reminders to take a break (30min to 2hr intervals, shown via speech bubble)
+- **Context Menu**: Enhanced right-click menu with quick mood switching, mute/unmute toggle, and all core actions
 - **Frequency**: Configurable monitoring intervals (often/frequent/infrequent)
 - **Pet Styles**: 10 highly detailed animated designs with unique personalities:
   - Each pet has multiple layers (body, pseudo-elements, shadows)
@@ -375,7 +376,6 @@ A single-page landing site is located in `website/` (gitignored):
 (All trivial features implemented)
 
 ### 🟡 Easy (a few hours)
-- **Right-click context menu on pet** — Quick actions: roast now, change mood, mute, settings, quit (replaces needing to open full settings)
 - **Pet click reactions** — Click/poke the pet and it reacts with a mini animation + short quip (no screenshot needed, just a canned or AI one-liner)
 - **Scheduled personalities** — Different mood at different times of day (e.g., encouraging in the morning, sarcastic after midnight)
 

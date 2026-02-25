@@ -21,6 +21,7 @@ A desktop pet that watches your screen and roasts you — rebuilt with **Tauri +
 - **Sound effects** — blip on roast start, chime on completion (procedurally generated, no bundled files)
 - **Global hotkey** — `Ctrl+Shift+R` triggers an instant roast from anywhere
 - **System tray** — tray icon with quick actions: roast, monitor, settings, quit
+- **Right-click menu** — quick access to roast, mute, change mood, settings without opening full panel
 - **Mood rotation** — optionally randomize personality each roast for variety
 - **App blacklist** — skip roasts when specific apps/windows are in the foreground
 - **Break reminders** — configurable reminders to take a break after continuous screen time

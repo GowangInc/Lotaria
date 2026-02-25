@@ -364,9 +364,20 @@ async function showContextMenu(x: number, y: number) {
   // Disable click-through so menu is interactive
   await setClickThrough(false);
 
+  // Update dynamic labels
+  updateMuteLabel();
+  const monitorItem = document.getElementById('menu-monitor') as HTMLElement;
+  monitorItem.textContent = config.is_active ? '⏸ Pause Monitoring' : '▶ Start Monitoring';
+
+  // Populate mood submenu
+  populateMoodSubmenu();
+
+  // Close any open submenu
+  document.getElementById('mood-submenu')?.classList.remove('open');
+
   const appRect = app.getBoundingClientRect();
   const menuWidth = 180;
-  const menuHeight = 150; // approximate
+  const menuHeight = 250; // increased for new items
 
   // Adjust position to stay within bounds
   let adjustedX = x;
@@ -382,6 +393,33 @@ async function showContextMenu(x: number, y: number) {
   contextMenu.style.left = `${Math.max(0, adjustedX)}px`;
   contextMenu.style.top = `${Math.max(0, adjustedY)}px`;
   contextMenu.classList.remove('hidden');
+}
+
+function updateMuteLabel() {
+  const muteItem = document.getElementById('menu-mute') as HTMLElement;
+  if (muteItem) {
+    muteItem.textContent = config.audio_enabled ? '🔇 Mute Audio' : '🔊 Unmute Audio';
+  }
+}
+
+function populateMoodSubmenu() {
+  const submenu = document.getElementById('mood-submenu') as HTMLElement;
+  if (!submenu) return;
+  submenu.innerHTML = '';
+
+  const moods = ['roast', 'helpful', 'encouraging', 'sarcastic', 'zen', 'anime', 'gordon', 'therapist', 'detective', 'hype'];
+  moods.forEach(mood => {
+    const item = document.createElement('div');
+    item.className = `menu-item${config.mood === mood ? ' active-mood' : ''}`;
+    item.textContent = mood.charAt(0).toUpperCase() + mood.slice(1);
+    item.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      config.mood = mood;
+      await invoke('set_config', { key: 'mood', value: mood });
+      hideContextMenu();
+    });
+    submenu.appendChild(item);
+  });
 }
 
 async function hideContextMenu() {
@@ -1004,6 +1042,20 @@ function setupEventListeners() {
   document.getElementById('menu-monitor')?.addEventListener('click', () => { hideContextMenu(); toggleMonitoring(); });
   document.getElementById('menu-settings')?.addEventListener('click', () => { hideContextMenu(); showSettings(); });
   document.getElementById('menu-quit')?.addEventListener('click', () => { hideContextMenu(); invoke('quit'); });
+
+  // Mute toggle
+  document.getElementById('menu-mute')?.addEventListener('click', async () => {
+    config.audio_enabled = !config.audio_enabled;
+    await invoke('set_config', { key: 'audio_enabled', value: config.audio_enabled });
+    updateMuteLabel();
+  });
+
+  // Mood submenu toggle
+  document.getElementById('menu-mood-toggle')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const submenu = document.getElementById('mood-submenu') as HTMLElement;
+    submenu.classList.toggle('open');
+  });
 
   // Settings
   document.getElementById('settings-close')?.addEventListener('click', closeSettings);

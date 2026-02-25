@@ -1601,6 +1601,33 @@
       margin: 6px 0;
     }
 
+    .menu-item .menu-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .menu-submenu {
+      display: none;
+      padding: 2px 0;
+      background: var(--color-bg-medium);
+      border-top: 1px solid var(--color-border);
+      margin-top: 4px;
+    }
+
+    .menu-submenu.open {
+      display: block;
+    }
+
+    .menu-submenu .menu-item {
+      padding: 6px 20px;
+      font-size: 11px;
+    }
+
+    .menu-submenu .menu-item.active-mood {
+      color: var(--color-primary);
+    }
+
     /* Settings Modal */
     #settings-overlay {
       position: absolute;
@@ -2177,6 +2204,11 @@
     <div id="context-menu" class="hidden">
       <div class="menu-item" id="menu-roast">🔥 Roast Now</div>
       <div class="menu-item" id="menu-monitor">▶ Start Monitoring</div>
+      <div class="menu-separator"></div>
+      <div class="menu-item" id="menu-mute">🔇 Mute Audio</div>
+      <div class="menu-item" id="menu-mood-toggle">🎭 Change Mood ▸
+        <div class="menu-submenu" id="mood-submenu"></div>
+      </div>
       <div class="menu-separator"></div>
       <div class="menu-item" id="menu-settings">⚙️ Settings</div>
       <div class="menu-separator"></div>

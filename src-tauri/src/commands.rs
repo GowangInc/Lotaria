@@ -107,6 +107,7 @@ pub async fn set_config(
                 .filter(|s| !s.is_empty())
                 .collect();
         }
+        "break_reminder_minutes" => config.break_reminder_minutes = value.as_u64().unwrap_or(0).min(240) as u32,
         "first_run" => config.first_run = value.as_bool().unwrap_or(false),
         _ => {}
     }
@@ -339,6 +340,7 @@ async fn monitoring_loop(
     config_lock: Arc<RwLock<Config>>,
 ) {
     let mut elapsed_secs = 0;
+    let mut break_elapsed_secs: u64 = 0;
 
     // Calculate initial interval
     let config = config_lock.read().await;
@@ -377,8 +379,23 @@ async fn monitoring_loop(
             tracing::info!("Next roast scheduled in {} seconds", interval_secs);
         }
 
+        // Break reminder check
+        let config = config_lock.read().await;
+        let break_mins = config.break_reminder_minutes;
+        drop(config);
+
+        if break_mins > 0 {
+            let break_secs = (break_mins as u64) * 60;
+            if break_elapsed_secs >= break_secs {
+                break_elapsed_secs = 0;
+                tracing::info!("Break reminder triggered after {} minutes", break_mins);
+                let _ = app_handle.emit("break-reminder", ());
+            }
+        }
+
         sleep(Duration::from_secs(1)).await;
         elapsed_secs += 1;
+        break_elapsed_secs += 1;
     }
 }
 

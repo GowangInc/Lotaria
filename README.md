@@ -23,6 +23,7 @@ A desktop pet that watches your screen and roasts you — rebuilt with **Tauri +
 - **System tray** — tray icon with quick actions: roast, monitor, settings, quit
 - **Mood rotation** — optionally randomize personality each roast for variety
 - **App blacklist** — skip roasts when specific apps/windows are in the foreground
+- **Break reminders** — configurable reminders to take a break after continuous screen time
 - **10 pet designs** — cat, ghost, robot, blob, owl, alien, pumpkin, cloud, octopus, or classic box
 - **Smooth animations** — avatar collapses during screenshot, expands on return
 - **Context memory** — remembers past roasts to call out patterns

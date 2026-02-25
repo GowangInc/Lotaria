@@ -275,6 +275,8 @@ pub struct Config {
     pub mood_rotation: String,
     #[serde(default)]
     pub blacklist: Vec<String>,
+    #[serde(default)]
+    pub break_reminder_minutes: u32,
 }
 
 fn default_first_run() -> bool {
@@ -310,6 +312,7 @@ impl Default for Config {
             roast_intensity: 5,
             mood_rotation: String::new(),
             blacklist: Vec::new(),
+            break_reminder_minutes: 0,
         }
     }
 }

@@ -23,6 +23,7 @@ interface Config {
   roast_intensity: number;
   mood_rotation: string;
   blacklist: string[];
+  break_reminder_minutes: number;
 }
 
 interface ProviderDef {
@@ -73,6 +74,7 @@ let config: Config = {
   roast_intensity: 5,
   mood_rotation: '',
   blacklist: [],
+  break_reminder_minutes: 0,
 };
 
 let providers: ProviderDef[] = [];
@@ -134,6 +136,25 @@ async function init() {
   });
   await listen('tray-open-settings', async () => {
     await showSettings();
+  });
+
+  // Listen for break reminders
+  await listen('break-reminder', async () => {
+    console.log('Break reminder triggered');
+    await setClickThrough(false);
+    speechText.textContent = 'Hey, you\'ve been at it a while. Time to stretch, hydrate, and look away from the screen for a bit!';
+    speechBubble.classList.add('visible');
+    speechBubble.classList.remove('hidden');
+    setTimeout(async () => {
+      speechBubble.classList.remove('visible');
+      speechBubble.classList.add('hidden');
+      if (!contextMenu.classList.contains('hidden') ||
+        settingsOverlay.classList.contains('open') ||
+        welcomeOverlay.classList.contains('open')) {
+        return;
+      }
+      await setClickThrough(true);
+    }, 10000);
   });
 
   // Apply pet style
@@ -485,6 +506,12 @@ async function showSettings() {
     const blacklistInput = document.getElementById('blacklist-input') as HTMLTextAreaElement;
     if (blacklistInput) {
       blacklistInput.value = (config.blacklist || []).join('\n');
+    }
+
+    // Populate break reminder
+    const breakSelect = document.getElementById('break-reminder-select') as HTMLSelectElement;
+    if (breakSelect) {
+      breakSelect.value = String(config.break_reminder_minutes || 0);
     }
 
     // Tab switching
@@ -1005,6 +1032,8 @@ function setupEventListeners() {
     await invoke('set_config', { key: 'mood_rotation', value: moodRotation });
     const blacklistText = (document.getElementById('blacklist-input') as HTMLTextAreaElement)?.value || '';
     await invoke('set_config', { key: 'blacklist', value: blacklistText });
+    const breakMins = parseInt((document.getElementById('break-reminder-select') as HTMLSelectElement)?.value || '0');
+    await invoke('set_config', { key: 'break_reminder_minutes', value: breakMins });
 
     // Reload config
     config = await invoke('get_config');

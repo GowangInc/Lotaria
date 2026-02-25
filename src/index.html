@@ -2228,6 +2228,21 @@
             <button class="settings-btn secondary" id="clear-history-btn" style="margin-top: 0;">Clear History</button>
           </div>
           <div class="settings-card">
+            <h3><span class="card-icon">☕</span> Break Reminders</h3>
+            <p class="card-desc">Get reminded to take a break after continuous screen time.</p>
+            <div class="select-group">
+              <label>Remind every</label>
+              <select class="settings-select" id="break-reminder-select">
+                <option value="0">Off</option>
+                <option value="30">30 minutes</option>
+                <option value="45">45 minutes</option>
+                <option value="60">1 hour</option>
+                <option value="90">1.5 hours</option>
+                <option value="120">2 hours</option>
+              </select>
+            </div>
+          </div>
+          <div class="settings-card">
             <h3><span class="card-icon">🚫</span> Blacklist</h3>
             <p class="card-desc">Skip roasts when these apps/windows are in the foreground (one per line, partial match).</p>
             <textarea id="blacklist-input" class="settings-select"

@@ -2,6 +2,8 @@
 
 use lotaria::{commands::*, state::StateManager};
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder, Emitter, window::Color};
+use tauri::menu::{MenuBuilder, MenuItemBuilder};
+use tauri::tray::TrayIconBuilder;
 
 fn main() {
     // Set up panic hook to see errors
@@ -99,6 +101,45 @@ fn main() {
             };
 
             tracing::info!("Window created");
+
+            // System tray
+            let roast_item = MenuItemBuilder::with_id("roast", "🔥 Roast Now").build(app)?;
+            let monitor_item = MenuItemBuilder::with_id("monitor", "▶ Start Monitoring").build(app)?;
+            let settings_item = MenuItemBuilder::with_id("settings", "⚙️ Settings").build(app)?;
+            let quit_item = MenuItemBuilder::with_id("quit", "Quit").build(app)?;
+
+            let tray_menu = MenuBuilder::new(app)
+                .item(&roast_item)
+                .item(&monitor_item)
+                .separator()
+                .item(&settings_item)
+                .separator()
+                .item(&quit_item)
+                .build()?;
+
+            let _tray = TrayIconBuilder::new()
+                .menu(&tray_menu)
+                .tooltip("Lotaria")
+                .on_menu_event(move |app, event| {
+                    match event.id().as_ref() {
+                        "roast" => {
+                            let _ = app.emit("monitoring-tick", ());
+                        }
+                        "monitor" => {
+                            let _ = app.emit("tray-toggle-monitoring", ());
+                        }
+                        "settings" => {
+                            let _ = app.emit("tray-open-settings", ());
+                        }
+                        "quit" => {
+                            app.exit(0);
+                        }
+                        _ => {}
+                    }
+                })
+                .build(app)?;
+
+            tracing::info!("System tray created");
 
             // Auto-start monitoring if not first run and was previously active
             if !is_first_run && is_active {

@@ -124,6 +124,14 @@ async function init() {
     await triggerRoast();
   });
 
+  // Listen for tray events
+  await listen('tray-toggle-monitoring', async () => {
+    await toggleMonitoring();
+  });
+  await listen('tray-open-settings', async () => {
+    await showSettings();
+  });
+
   // Apply pet style
   character.className = `pet-${config.pet_style || 'default'}`;
 

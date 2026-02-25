@@ -103,23 +103,28 @@ lotaria/
 
 ## Supported Providers
 
+### Local (100% Free, Offline)
+| Provider | Cost | Notes |
+|----------|------|-------|
+| **Ollama + Piper** ⭐ | FREE | Default setup, zero API costs, runs offline |
+
 ### Vision + TTS (All-in-one)
 | Provider | Cost | Notes |
 |----------|------|-------|
-| **Google Gemini** ⭐ | FREE | 30 voices, vision + TTS included |
+| **Google Gemini** | FREE | 30 voices, vision + TTS included |
 | **OpenAI** | $$ | 11 voices, gpt-4o + TTS |
 
 ### Vision Only (Need separate TTS)
 | Provider | Cost | Notes |
 |----------|------|-------|
-| **DeepSeek** | $ | Cheapest vision (~$0.21/mo) |
 | **Groq** | $ | Fastest inference (~$1-2.50/mo) |
 | **Anthropic Claude** | $$$ | Sonnet/Opus models (~$2.70/mo) |
 
 ### TTS Only (Need separate vision)
 | Provider | Cost | Notes |
 |----------|------|-------|
-| **Inworld AI** | $ | Cheapest TTS ($5-10/M chars), 7 voices |
+| **Piper TTS** | FREE | Bundled offline TTS, 7 voices included |
+| **Inworld AI** | $ | Cheapest cloud TTS ($5-10/M chars), 7 voices |
 | **ElevenLabs** | $$$ | Premium voices, free 10k chars/mo |
 | **Murf AI** | $$$$ | Studio quality ($26/mo), Falcon/Gen2 |
 
@@ -133,7 +138,7 @@ Create your own personality prompts:
 4. Click **"✨ Improve with AI"** to enhance your prompt
 5. Save and enjoy your personalized roasts
 
-Built-in moods: roast (savage), helpful (productivity coach), encouraging (cheerleader), sarcastic (dry wit).
+Built-in moods: roast (savage), helpful (productivity coach), encouraging (cheerleader), sarcastic (dry wit), zen (mindfulness), anime (kawaii energy), gordon (chef brutality), therapist (emotional support), detective (investigative), hype (maximum energy).
 
 ## Settings
 

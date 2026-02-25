@@ -233,13 +233,11 @@
       content: '';
       position: absolute;
       inset: 0;
-      background: repeating-linear-gradient(
-        0deg,
-        rgba(0, 255, 136, 0.03) 0px,
-        rgba(0, 255, 136, 0.03) 2px,
-        transparent 2px,
-        transparent 4px
-      );
+      background: repeating-linear-gradient(0deg,
+          rgba(0, 255, 136, 0.03) 0px,
+          rgba(0, 255, 136, 0.03) 2px,
+          transparent 2px,
+          transparent 4px);
       pointer-events: none;
       animation: pet-scanlines 8s linear infinite;
     }
@@ -258,19 +256,43 @@
     }
 
     @keyframes pet-crt-flicker {
-      0%, 100% { transform: translateY(0); filter: brightness(1); }
-      50% { transform: translateY(-3px); filter: brightness(1.05); }
-      51% { filter: brightness(0.95); }
+
+      0%,
+      100% {
+        transform: translateY(0);
+        filter: brightness(1);
+      }
+
+      50% {
+        transform: translateY(-3px);
+        filter: brightness(1.05);
+      }
+
+      51% {
+        filter: brightness(0.95);
+      }
     }
 
     @keyframes pet-scanlines {
-      0% { transform: translateY(0); }
-      100% { transform: translateY(4px); }
+      0% {
+        transform: translateY(0);
+      }
+
+      100% {
+        transform: translateY(4px);
+      }
     }
 
     @keyframes pet-power-led {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.5;
+      }
     }
 
     /* 2. Cat - fuzzy, with whiskers and tail */
@@ -338,38 +360,65 @@
     }
 
     @keyframes pet-cat-breathe {
-      0%, 100% { transform: scale(1) rotate(0deg); }
-      25% { transform: scale(1.02) rotate(1deg); }
-      50% { transform: scale(1) rotate(0deg); }
-      75% { transform: scale(1.02) rotate(-1deg); }
+
+      0%,
+      100% {
+        transform: scale(1) rotate(0deg);
+      }
+
+      25% {
+        transform: scale(1.02) rotate(1deg);
+      }
+
+      50% {
+        transform: scale(1) rotate(0deg);
+      }
+
+      75% {
+        transform: scale(1.02) rotate(-1deg);
+      }
     }
 
     @keyframes pet-ear-twitch {
-      0%, 100% { transform: rotate(0deg); }
-      10% { transform: rotate(-5deg); }
-      20% { transform: rotate(0deg); }
+
+      0%,
+      100% {
+        transform: rotate(0deg);
+      }
+
+      10% {
+        transform: rotate(-5deg);
+      }
+
+      20% {
+        transform: rotate(0deg);
+      }
     }
 
     @keyframes pet-whisker-wiggle {
-      0%, 100% { transform: scaleX(1); }
-      50% { transform: scaleX(1.1); }
+
+      0%,
+      100% {
+        transform: scaleX(1);
+      }
+
+      50% {
+        transform: scaleX(1.1);
+      }
     }
 
     /* 3. Ghost - ethereal with flowing energy */
     #character.pet-ghost .character-body {
       border-radius: 50% 50% 0 0;
-      clip-path: polygon(
-        0% 0%, 100% 0%, 100% 70%,
-        92% 78%, 85% 72%, 77% 80%, 70% 72%,
-        62% 78%, 55% 72%, 47% 80%, 40% 72%,
-        32% 78%, 25% 72%, 17% 80%, 10% 72%,
-        5% 78%, 0% 72%
-      );
+      clip-path: polygon(0% 0%, 100% 0%, 100% 70%,
+          92% 78%, 85% 72%, 77% 80%, 70% 72%,
+          62% 78%, 55% 72%, 47% 80%, 40% 72%,
+          32% 78%, 25% 72%, 17% 80%, 10% 72%,
+          5% 78%, 0% 72%);
       background: linear-gradient(180deg,
-        rgba(230, 230, 255, 0.9) 0%,
-        rgba(200, 210, 255, 0.85) 50%,
-        rgba(180, 190, 255, 0.75) 100%
-      );
+          rgba(230, 230, 255, 0.9) 0%,
+          rgba(200, 210, 255, 0.85) 50%,
+          rgba(180, 190, 255, 0.75) 100%);
       border: none;
       box-shadow:
         0 0 30px rgba(200, 210, 255, 0.5),
@@ -423,21 +472,39 @@
     }
 
     @keyframes pet-ghost-float {
-      0%, 100% {
+
+      0%,
+      100% {
         transform: translateY(0) rotate(0deg);
         filter: brightness(1);
       }
-      25% { transform: translateY(-8px) rotate(-2deg); }
+
+      25% {
+        transform: translateY(-8px) rotate(-2deg);
+      }
+
       50% {
         transform: translateY(-12px) rotate(0deg);
         filter: brightness(1.1);
       }
-      75% { transform: translateY(-8px) rotate(2deg); }
+
+      75% {
+        transform: translateY(-8px) rotate(2deg);
+      }
     }
 
     @keyframes pet-ghost-trail {
-      0%, 100% { opacity: 0.4; transform: translateX(-50%) scaleY(1); }
-      50% { opacity: 0.6; transform: translateX(-50%) scaleY(1.2); }
+
+      0%,
+      100% {
+        opacity: 0.4;
+        transform: translateX(-50%) scaleY(1);
+      }
+
+      50% {
+        opacity: 0.6;
+        transform: translateX(-50%) scaleY(1.2);
+      }
     }
 
     /* 4. Robot - mechanical with panels and antenna */
@@ -445,8 +512,8 @@
       border-radius: 6px;
       background:
         linear-gradient(145deg, #3a4a5a, #2a3a4a),
-        linear-gradient(90deg, transparent 48%, rgba(255,255,255,0.1) 50%, transparent 52%),
-        linear-gradient(0deg, transparent 48%, rgba(255,255,255,0.1) 50%, transparent 52%);
+        linear-gradient(90deg, transparent 48%, rgba(255, 255, 255, 0.1) 50%, transparent 52%),
+        linear-gradient(0deg, transparent 48%, rgba(255, 255, 255, 0.1) 50%, transparent 52%);
       border: 2px solid #4a5a6a;
       box-shadow:
         inset 2px 2px 4px rgba(255, 255, 255, 0.1),
@@ -527,15 +594,25 @@
     }
 
     @keyframes pet-robot-process {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-1px); }
+
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-1px);
+      }
     }
 
     @keyframes pet-robot-beacon {
-      0%, 100% {
+
+      0%,
+      100% {
         opacity: 1;
         box-shadow: 0 0 10px var(--color-primary), inset -2px -2px 3px rgba(0, 0, 0, 0.3);
       }
+
       50% {
         opacity: 0.5;
         box-shadow: 0 0 20px var(--color-primary), inset -2px -2px 3px rgba(0, 0, 0, 0.3);
@@ -543,8 +620,15 @@
     }
 
     @keyframes pet-robot-scan {
-      0%, 100% { filter: brightness(1); }
-      50% { filter: brightness(1.3); }
+
+      0%,
+      100% {
+        filter: brightness(1);
+      }
+
+      50% {
+        filter: brightness(1.3);
+      }
     }
 
     /* 5. Blob - gooey liquid creature */
@@ -608,40 +692,81 @@
     }
 
     @keyframes pet-blob-morph {
-      0%, 100% {
+
+      0%,
+      100% {
         border-radius: 60% 40% 50% 50% / 50% 60% 40% 50%;
       }
+
       20% {
         border-radius: 45% 55% 48% 52% / 52% 45% 55% 48%;
       }
+
       40% {
         border-radius: 52% 48% 55% 45% / 48% 52% 48% 52%;
       }
+
       60% {
         border-radius: 48% 52% 45% 55% / 55% 48% 52% 45%;
       }
+
       80% {
         border-radius: 55% 45% 52% 48% / 45% 55% 45% 55%;
       }
     }
 
     @keyframes pet-blob-jiggle {
-      0%, 100% { transform: scale(1, 1); }
-      25% { transform: scale(1.05, 0.95); }
-      50% { transform: scale(0.95, 1.05); }
-      75% { transform: scale(1.02, 0.98); }
+
+      0%,
+      100% {
+        transform: scale(1, 1);
+      }
+
+      25% {
+        transform: scale(1.05, 0.95);
+      }
+
+      50% {
+        transform: scale(0.95, 1.05);
+      }
+
+      75% {
+        transform: scale(1.02, 0.98);
+      }
     }
 
     @keyframes pet-blob-drip {
-      0%, 100% { transform: translateY(0) scaleY(1); opacity: 0.7; }
-      50% { transform: translateY(3px) scaleY(1.3); opacity: 0.9; }
+
+      0%,
+      100% {
+        transform: translateY(0) scaleY(1);
+        opacity: 0.7;
+      }
+
+      50% {
+        transform: translateY(3px) scaleY(1.3);
+        opacity: 0.9;
+      }
     }
 
     @keyframes pet-blob-pupil-swim {
-      0%, 100% { transform: translate(-50%, -50%); }
-      25% { transform: translate(-48%, -52%); }
-      50% { transform: translate(-52%, -50%); }
-      75% { transform: translate(-50%, -48%); }
+
+      0%,
+      100% {
+        transform: translate(-50%, -50%);
+      }
+
+      25% {
+        transform: translate(-48%, -52%);
+      }
+
+      50% {
+        transform: translate(-52%, -50%);
+      }
+
+      75% {
+        transform: translate(-50%, -48%);
+      }
     }
 
     /* 6. Owl - wise with feather patterns */
@@ -722,21 +847,53 @@
     }
 
     @keyframes pet-owl-hoot {
-      0%, 100% { transform: rotate(0deg) scale(1); }
-      15% { transform: rotate(6deg) scale(1.01); }
-      30% { transform: rotate(0deg) scale(1); }
-      45% { transform: rotate(-4deg) scale(1.01); }
-      60% { transform: rotate(0deg) scale(1); }
+
+      0%,
+      100% {
+        transform: rotate(0deg) scale(1);
+      }
+
+      15% {
+        transform: rotate(6deg) scale(1.01);
+      }
+
+      30% {
+        transform: rotate(0deg) scale(1);
+      }
+
+      45% {
+        transform: rotate(-4deg) scale(1.01);
+      }
+
+      60% {
+        transform: rotate(0deg) scale(1);
+      }
     }
 
     @keyframes pet-owl-tuft {
-      0%, 100% { transform: rotate(0deg) scaleY(1); }
-      50% { transform: rotate(-3deg) scaleY(1.1); }
+
+      0%,
+      100% {
+        transform: rotate(0deg) scaleY(1);
+      }
+
+      50% {
+        transform: rotate(-3deg) scaleY(1.1);
+      }
     }
 
     @keyframes pet-owl-blink {
-      0%, 100%, 48%, 52% { height: 16px; }
-      50% { height: 2px; }
+
+      0%,
+      100%,
+      48%,
+      52% {
+        height: 16px;
+      }
+
+      50% {
+        height: 2px;
+      }
     }
 
     /* 7. Alien - otherworldly with energy field */
@@ -764,10 +921,9 @@
       inset: -6px;
       border-radius: inherit;
       background: radial-gradient(circle at 50% 50%,
-        transparent 60%,
-        rgba(0, 255, 136, 0.2) 80%,
-        transparent 100%
-      );
+          transparent 60%,
+          rgba(0, 255, 136, 0.2) 80%,
+          transparent 100%);
       animation: pet-alien-field 3s ease-in-out infinite;
       pointer-events: none;
     }
@@ -782,11 +938,10 @@
       width: 20px;
       height: 4px;
       background: linear-gradient(90deg,
-        transparent 0%,
-        var(--color-success) 20%,
-        var(--color-success) 80%,
-        transparent 100%
-      );
+          transparent 0%,
+          var(--color-success) 20%,
+          var(--color-success) 80%,
+          transparent 100%);
       border-radius: 2px;
       box-shadow:
         0 0 8px var(--color-success),
@@ -817,13 +972,16 @@
     }
 
     @keyframes pet-alien-pulse {
-      0%, 100% {
+
+      0%,
+      100% {
         transform: scale(1);
         box-shadow:
           0 0 20px rgba(0, 255, 136, 0.4),
           inset 0 -15px 25px rgba(0, 255, 136, 0.1),
           inset 0 2px 4px rgba(255, 255, 255, 0.1);
       }
+
       50% {
         transform: scale(1.03);
         box-shadow:
@@ -834,14 +992,34 @@
     }
 
     @keyframes pet-alien-field {
-      0%, 100% { opacity: 0.4; transform: scale(1); }
-      50% { opacity: 0.8; transform: scale(1.05); }
+
+      0%,
+      100% {
+        opacity: 0.4;
+        transform: scale(1);
+      }
+
+      50% {
+        opacity: 0.8;
+        transform: scale(1.05);
+      }
     }
 
     @keyframes pet-alien-scan {
-      0% { transform: translateX(-50%) scaleX(1); opacity: 0.6; }
-      50% { transform: translateX(-50%) scaleX(1.3); opacity: 1; }
-      100% { transform: translateX(-50%) scaleX(1); opacity: 0.6; }
+      0% {
+        transform: translateX(-50%) scaleX(1);
+        opacity: 0.6;
+      }
+
+      50% {
+        transform: translateX(-50%) scaleX(1.3);
+        opacity: 1;
+      }
+
+      100% {
+        transform: translateX(-50%) scaleX(1);
+        opacity: 0.6;
+      }
     }
 
     /* 8. Pumpkin - jack-o'-lantern with inner glow */
@@ -853,8 +1031,7 @@
           #cc5500 0%, #e87820 15%,
           #cc5500 30%, #e87820 45%,
           #cc5500 55%, #e87820 70%,
-          #cc5500 85%, #e87820 100%
-        );
+          #cc5500 85%, #e87820 100%);
       border: 3px solid #b84500;
       box-shadow:
         0 8px 20px rgba(232, 120, 32, 0.4),
@@ -895,12 +1072,10 @@
       box-shadow:
         0 0 12px rgba(255, 136, 0, 0.8),
         inset 0 2px 4px rgba(0, 0, 0, 0.6);
-      clip-path: polygon(
-        0% 0%, 15% 50%, 25% 0%,
-        35% 50%, 45% 0%, 55% 50%,
-        65% 0%, 75% 50%, 85% 0%, 100% 0%,
-        100% 100%, 0% 100%
-      );
+      clip-path: polygon(0% 0%, 15% 50%, 25% 0%,
+          35% 50%, 45% 0%, 55% 50%,
+          65% 0%, 75% 50%, 85% 0%, 100% 0%,
+          100% 100%, 0% 100%);
       animation: pet-pumpkin-flicker 4s ease-in-out infinite;
     }
 
@@ -922,12 +1097,15 @@
     }
 
     @keyframes pet-pumpkin-glow {
-      0%, 100% {
+
+      0%,
+      100% {
         box-shadow:
           0 8px 20px rgba(232, 120, 32, 0.4),
           inset 0 -20px 30px rgba(0, 0, 0, 0.3),
           inset 0 20px 20px rgba(255, 160, 50, 0.2);
       }
+
       50% {
         box-shadow:
           0 8px 25px rgba(232, 120, 32, 0.6),
@@ -937,23 +1115,49 @@
     }
 
     @keyframes pet-pumpkin-flicker {
-      0%, 100% {
+
+      0%,
+      100% {
         opacity: 1;
         filter: brightness(1);
       }
-      10% { opacity: 0.8; filter: brightness(0.9); }
-      20% { opacity: 1; filter: brightness(1); }
+
+      10% {
+        opacity: 0.8;
+        filter: brightness(0.9);
+      }
+
+      20% {
+        opacity: 1;
+        filter: brightness(1);
+      }
+
       50% {
         opacity: 0.7;
         filter: brightness(0.85);
       }
-      60% { opacity: 0.9; filter: brightness(0.95); }
-      70% { opacity: 1; filter: brightness(1); }
+
+      60% {
+        opacity: 0.9;
+        filter: brightness(0.95);
+      }
+
+      70% {
+        opacity: 1;
+        filter: brightness(1);
+      }
     }
 
     @keyframes pet-pumpkin-eye-glow {
-      0%, 100% { filter: brightness(1); }
-      50% { filter: brightness(0.8); }
+
+      0%,
+      100% {
+        filter: brightness(1);
+      }
+
+      50% {
+        filter: brightness(0.8);
+      }
     }
 
     /* 9. Cloud - fluffy with weather effects */
@@ -1027,33 +1231,57 @@
     }
 
     @keyframes pet-cloud-drift {
-      0%, 100% {
+
+      0%,
+      100% {
         transform: translateX(0) translateY(0);
         filter: blur(0.3px);
       }
-      25% { transform: translateX(8px) translateY(-3px); }
+
+      25% {
+        transform: translateX(8px) translateY(-3px);
+      }
+
       50% {
         transform: translateX(12px) translateY(0);
         filter: blur(0.5px);
       }
-      75% { transform: translateX(8px) translateY(3px); }
+
+      75% {
+        transform: translateX(8px) translateY(3px);
+      }
     }
 
     @keyframes pet-cloud-rain {
-      0% { transform: translateY(0); opacity: 0; }
-      20% { opacity: 0.7; }
-      100% { transform: translateY(16px); opacity: 0; }
+      0% {
+        transform: translateY(0);
+        opacity: 0;
+      }
+
+      20% {
+        opacity: 0.7;
+      }
+
+      100% {
+        transform: translateY(16px);
+        opacity: 0;
+      }
     }
 
     @keyframes pet-cloud-lightning {
-      0%, 95%, 100% {
+
+      0%,
+      95%,
+      100% {
         background: rgba(255, 255, 100, 0);
         box-shadow:
           0 0 4px rgba(255, 255, 100, 0),
           1px 4px 0 rgba(255, 255, 100, 0),
           -1px 8px 0 rgba(255, 255, 100, 0);
       }
-      96%, 97% {
+
+      96%,
+      97% {
         background: rgba(255, 255, 100, 0.9);
         box-shadow:
           0 0 8px rgba(255, 255, 100, 0.9),
@@ -1088,11 +1316,10 @@
       width: 84%;
       height: 16px;
       background: repeating-linear-gradient(90deg,
-        #7a3080 0px,
-        #7a3080 10px,
-        transparent 10px,
-        transparent 14px
-      );
+          #7a3080 0px,
+          #7a3080 10px,
+          transparent 10px,
+          transparent 14px);
       border-radius: 0 0 8px 8px;
       box-shadow:
         0 2px 0 -1px rgba(100, 50, 110, 0.6),
@@ -1121,11 +1348,10 @@
       width: 76%;
       height: 14px;
       background: repeating-linear-gradient(90deg,
-        #6a2070 0px,
-        #6a2070 9px,
-        transparent 9px,
-        transparent 13px
-      );
+          #6a2070 0px,
+          #6a2070 9px,
+          transparent 9px,
+          transparent 13px);
       border-radius: 0 0 7px 7px;
       box-shadow:
         0 4px 6px rgba(0, 0, 0, 0.4),
@@ -1144,12 +1370,10 @@
       left: -45px;
       width: 130px;
       height: 100px;
-      background: repeating-linear-gradient(
-        0deg,
-        transparent 0px,
-        rgba(160, 100, 200, 0.05) 8px,
-        transparent 16px
-      );
+      background: repeating-linear-gradient(0deg,
+          transparent 0px,
+          rgba(160, 100, 200, 0.05) 8px,
+          transparent 16px);
       pointer-events: none;
       animation: pet-octopus-ripple 5s linear infinite;
       border-radius: 50%;
@@ -1174,22 +1398,55 @@
     }
 
     @keyframes pet-octopus-swim {
-      0%, 100% { transform: translateY(0) rotate(0deg); }
-      25% { transform: translateY(-6px) rotate(-1deg); }
-      50% { transform: translateY(-8px) rotate(0deg); }
-      75% { transform: translateY(-6px) rotate(1deg); }
+
+      0%,
+      100% {
+        transform: translateY(0) rotate(0deg);
+      }
+
+      25% {
+        transform: translateY(-6px) rotate(-1deg);
+      }
+
+      50% {
+        transform: translateY(-8px) rotate(0deg);
+      }
+
+      75% {
+        transform: translateY(-6px) rotate(1deg);
+      }
     }
 
     @keyframes pet-tentacle-wave {
-      0%, 100% { transform: skewX(0deg) scaleY(1); }
-      25% { transform: skewX(6deg) scaleY(1.05); }
-      50% { transform: skewX(0deg) scaleY(0.95); }
-      75% { transform: skewX(-6deg) scaleY(1.05); }
+
+      0%,
+      100% {
+        transform: skewX(0deg) scaleY(1);
+      }
+
+      25% {
+        transform: skewX(6deg) scaleY(1.05);
+      }
+
+      50% {
+        transform: skewX(0deg) scaleY(0.95);
+      }
+
+      75% {
+        transform: skewX(-6deg) scaleY(1.05);
+      }
     }
 
     @keyframes pet-octopus-ripple {
-      0% { transform: translateY(0); opacity: 0.3; }
-      100% { transform: translateY(16px); opacity: 0; }
+      0% {
+        transform: translateY(0);
+        opacity: 0.3;
+      }
+
+      100% {
+        transform: translateY(16px);
+        opacity: 0;
+      }
     }
 
     /* Speech Bubble */
@@ -1366,17 +1623,27 @@
     }
 
     #settings-header {
-      padding: 16px;
+      padding: 14px 16px;
       border-bottom: 1px solid var(--color-border);
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-shrink: 0;
     }
 
     #settings-header h2 {
       color: var(--color-primary);
-      font-size: 18px;
+      font-size: 16px;
       margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #settings-header h2 .tab-title {
+      color: var(--color-text-muted);
+      font-size: 13px;
+      font-weight: 400;
     }
 
     #settings-close {
@@ -1399,12 +1666,124 @@
       color: var(--color-text);
     }
 
+    /* Tab Strip */
+    .settings-tabs {
+      display: flex;
+      gap: 0;
+      padding: 0 12px;
+      border-bottom: 1px solid var(--color-border);
+      background: var(--color-bg-deep);
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .settings-tab {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 14px;
+      border: none;
+      background: none;
+      color: var(--color-text-muted);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      position: relative;
+      transition: color 0.2s, background 0.2s;
+      border-radius: 6px 6px 0 0;
+      white-space: nowrap;
+    }
+
+    .settings-tab:hover {
+      color: var(--color-text);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .settings-tab.active {
+      color: var(--color-primary);
+    }
+
+    .settings-tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 8px;
+      right: 8px;
+      height: 2px;
+      background: var(--color-primary);
+      border-radius: 2px 2px 0 0;
+    }
+
+    .settings-tab .tab-icon {
+      font-size: 14px;
+      line-height: 1;
+    }
+
+    /* Tab Content */
     #settings-content {
       flex: 1;
       overflow-y: auto;
-      padding: 16px;
+      padding: 0;
+      position: relative;
     }
 
+    .settings-tab-panel {
+      display: none;
+      padding: 16px;
+      animation: tabFadeIn 0.2s ease;
+    }
+
+    .settings-tab-panel.active {
+      display: block;
+    }
+
+    @keyframes tabFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Settings Card */
+    .settings-card {
+      background: var(--color-bg-medium);
+      border: 1px solid var(--color-border);
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+
+    .settings-card:last-child {
+      margin-bottom: 0;
+    }
+
+    .settings-card h3 {
+      color: var(--color-text);
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .settings-card h3 .card-icon {
+      font-size: 14px;
+    }
+
+    .settings-card .card-desc {
+      color: var(--color-text-dim);
+      font-size: 11px;
+      margin-bottom: 10px;
+      line-height: 1.4;
+    }
+
+    /* Legacy section styles (kept for compatibility) */
     .settings-section {
       margin-bottom: 20px;
       padding-bottom: 16px;
@@ -1428,6 +1807,10 @@
       flex-direction: column;
       gap: 6px;
       margin-bottom: 12px;
+    }
+
+    .key-row:last-child {
+      margin-bottom: 0;
     }
 
     .key-row label {
@@ -1485,6 +1868,10 @@
 
     .select-group {
       margin-bottom: 12px;
+    }
+
+    .select-group:last-child {
+      margin-bottom: 0;
     }
 
     .select-group label {
@@ -1799,75 +2186,109 @@
     <!-- Settings Modal -->
     <div id="settings-overlay">
       <div id="settings-header">
-        <h2>Settings</h2>
+        <h2>⚙️ Settings</h2>
         <button id="settings-close">×</button>
       </div>
+      <div class="settings-tabs" id="settings-tabs">
+        <button class="settings-tab active" data-tab="general">
+          <span class="tab-icon">⚙️</span> General
+        </button>
+        <button class="settings-tab" data-tab="ai">
+          <span class="tab-icon">🤖</span> AI
+        </button>
+        <button class="settings-tab" data-tab="mood">
+          <span class="tab-icon">🎭</span> Mood
+        </button>
+        <button class="settings-tab" data-tab="keys">
+          <span class="tab-icon">🔑</span> Keys
+        </button>
+      </div>
       <div id="settings-content">
-        <div class="settings-section">
-          <h3>API Keys</h3>
-          <div id="api-keys-list"></div>
-        </div>
-
-        <div class="settings-section">
-          <h3>Frequency</h3>
-          <div class="select-group">
-            <label>Monitoring Interval</label>
-            <select class="settings-select" id="interval-select"></select>
+        <!-- General Tab -->
+        <div class="settings-tab-panel active" data-panel="general">
+          <div class="settings-card">
+            <h3><span class="card-icon">⏱️</span> Frequency</h3>
+            <p class="card-desc">How often Lotaria captures your screen and roasts you.</p>
+            <div class="select-group">
+              <label>Monitoring Interval</label>
+              <select class="settings-select" id="interval-select"></select>
+            </div>
+          </div>
+          <div class="settings-card">
+            <h3><span class="card-icon">🐾</span> Pet Style</h3>
+            <p class="card-desc">Choose the look and personality of your desktop companion.</p>
+            <div class="select-group">
+              <label>Character</label>
+              <select class="settings-select" id="pet-style-select"></select>
+            </div>
+          </div>
+          <div class="settings-card">
+            <h3><span class="card-icon">📜</span> History</h3>
+            <p class="card-desc">Clear saved roast history (last 20 entries).</p>
+            <button class="settings-btn secondary" id="clear-history-btn" style="margin-top: 0;">Clear History</button>
           </div>
         </div>
 
-        <div class="settings-section">
-          <h3>Vision</h3>
-          <div class="select-group">
-            <label>Provider</label>
-            <select class="settings-select" id="vision-provider-select"></select>
+        <!-- AI Tab -->
+        <div class="settings-tab-panel" data-panel="ai">
+          <div class="settings-card">
+            <h3><span class="card-icon">👁️</span> Vision</h3>
+            <p class="card-desc">The AI model that analyzes your screen captures.</p>
+            <div class="select-group">
+              <label>Provider</label>
+              <select class="settings-select" id="vision-provider-select"></select>
+            </div>
+            <div class="select-group">
+              <label>Model</label>
+              <select class="settings-select" id="vision-model-select"></select>
+            </div>
           </div>
-          <div class="select-group">
-            <label>Model</label>
-            <select class="settings-select" id="vision-model-select"></select>
-          </div>
-        </div>
-
-        <div class="settings-section">
-          <h3>Text-to-Speech</h3>
-          <div class="select-group">
-            <label>Provider</label>
-            <select class="settings-select" id="tts-provider-select"></select>
-          </div>
-          <div class="select-group">
-            <label>Model</label>
-            <select class="settings-select" id="tts-model-select"></select>
-          </div>
-          <div class="select-group" id="tts-voice-group">
-            <label>Voice</label>
-            <select class="settings-select" id="tts-voice-select"></select>
-          </div>
-        </div>
-
-        <div class="settings-section">
-          <h3>Mood</h3>
-          <div class="select-group">
-            <label>Personality</label>
-            <select class="settings-select" id="mood-select"></select>
-          </div>
-          <div id="custom-mood-section" style="display: none; margin-top: 12px;">
-            <label style="display: block; color: var(--color-text-muted); font-size: 11px; margin-bottom: 6px;">Custom Prompt</label>
-            <textarea id="custom-mood-input" class="settings-select" style="height: 120px; resize: vertical; font-family: monospace; font-size: 11px; line-height: 1.4; padding: 10px;" placeholder="Describe how you want the assistant to behave..."></textarea>
-            <button class="settings-btn secondary" id="improve-mood-btn" style="margin-top: 8px;">✨ Improve with AI</button>
+          <div class="settings-card">
+            <h3><span class="card-icon">🔊</span> Text-to-Speech</h3>
+            <p class="card-desc">Voice synthesis for reading roasts aloud.</p>
+            <div class="select-group">
+              <label>Provider</label>
+              <select class="settings-select" id="tts-provider-select"></select>
+            </div>
+            <div class="select-group">
+              <label>Model</label>
+              <select class="settings-select" id="tts-model-select"></select>
+            </div>
+            <div class="select-group" id="tts-voice-group">
+              <label>Voice</label>
+              <select class="settings-select" id="tts-voice-select"></select>
+            </div>
           </div>
         </div>
 
-        <div class="settings-section">
-          <h3>Pet Style</h3>
-          <div class="select-group">
-            <label>Character</label>
-            <select class="settings-select" id="pet-style-select"></select>
+        <!-- Mood Tab -->
+        <div class="settings-tab-panel" data-panel="mood">
+          <div class="settings-card">
+            <h3><span class="card-icon">🎭</span> Personality</h3>
+            <p class="card-desc">Set how the pet talks to you — roasting, helpful, zen, and more.</p>
+            <div class="select-group">
+              <label>Mood</label>
+              <select class="settings-select" id="mood-select"></select>
+            </div>
+            <div id="custom-mood-section" style="display: none; margin-top: 12px;">
+              <label style="display: block; color: var(--color-text-muted); font-size: 11px; margin-bottom: 6px;">Custom
+                Prompt</label>
+              <textarea id="custom-mood-input" class="settings-select"
+                style="height: 120px; resize: vertical; font-family: monospace; font-size: 11px; line-height: 1.4; padding: 10px;"
+                placeholder="Describe how you want the assistant to behave..."></textarea>
+              <button class="settings-btn secondary" id="improve-mood-btn" style="margin-top: 8px;">✨ Improve with
+                AI</button>
+            </div>
           </div>
         </div>
 
-        <div class="settings-section">
-          <h3>History</h3>
-          <button class="settings-btn secondary" id="clear-history-btn">Clear History</button>
+        <!-- Keys Tab -->
+        <div class="settings-tab-panel" data-panel="keys">
+          <div class="settings-card">
+            <h3><span class="card-icon">🔑</span> API Keys</h3>
+            <p class="card-desc">Enter keys for each provider. Keys are saved locally and never shared.</p>
+            <div id="api-keys-list"></div>
+          </div>
         </div>
       </div>
       <div style="padding: 12px 16px; border-top: 1px solid var(--color-border); flex-shrink: 0;">

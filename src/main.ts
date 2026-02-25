@@ -70,6 +70,8 @@ let config: Config = {
 
 let providers: ProviderDef[] = [];
 let isProcessing = false;
+let lastActiveTab = 'general';
+let tabsInitialized = false;
 
 // Pet style definitions
 const PET_STYLES: { key: string; name: string }[] = [
@@ -239,8 +241,8 @@ async function deliverRoast(result: RoastResult) {
     speechBubble.classList.add('hidden');
     // Re-enable click-through if no other overlays are open
     if (!contextMenu.classList.contains('hidden') ||
-        settingsOverlay.classList.contains('open') ||
-        welcomeOverlay.classList.contains('open')) {
+      settingsOverlay.classList.contains('open') ||
+      welcomeOverlay.classList.contains('open')) {
       return;
     }
     await setClickThrough(true);
@@ -262,8 +264,8 @@ async function showError(message: string) {
     speechBubble.classList.add('hidden');
     // Re-enable click-through if no other overlays are open
     if (!contextMenu.classList.contains('hidden') ||
-        settingsOverlay.classList.contains('open') ||
-        welcomeOverlay.classList.contains('open')) {
+      settingsOverlay.classList.contains('open') ||
+      welcomeOverlay.classList.contains('open')) {
       return;
     }
     await setClickThrough(true);
@@ -339,8 +341,8 @@ async function hideContextMenu() {
   contextMenu.classList.add('hidden');
   // Re-enable click-through if no other overlays are open
   if (!settingsOverlay.classList.contains('open') &&
-      !welcomeOverlay.classList.contains('open') &&
-      !speechBubble.classList.contains('visible')) {
+    !welcomeOverlay.classList.contains('open') &&
+    !speechBubble.classList.contains('visible')) {
     await setClickThrough(true);
   }
 }
@@ -452,6 +454,37 @@ async function showSettings() {
     buildMoodUI();
     buildPetStyleUI();
     updateCostEstimator();
+
+    // Tab switching
+    if (!tabsInitialized) {
+      const tabStrip = document.getElementById('settings-tabs') as HTMLElement;
+      tabStrip.addEventListener('click', (e) => {
+        const tab = (e.target as HTMLElement).closest('.settings-tab') as HTMLElement;
+        if (!tab) return;
+        const tabName = tab.dataset.tab!;
+
+        // Update active tab button
+        tabStrip.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        // Update active panel
+        document.querySelectorAll('.settings-tab-panel').forEach(p => p.classList.remove('active'));
+        const panel = document.querySelector(`.settings-tab-panel[data-panel="${tabName}"]`) as HTMLElement;
+        if (panel) panel.classList.add('active');
+
+        lastActiveTab = tabName;
+      });
+      tabsInitialized = true;
+    }
+
+    // Restore last active tab
+    const tabStrip = document.getElementById('settings-tabs') as HTMLElement;
+    tabStrip.querySelectorAll('.settings-tab').forEach(t => {
+      t.classList.toggle('active', (t as HTMLElement).dataset.tab === lastActiveTab);
+    });
+    document.querySelectorAll('.settings-tab-panel').forEach(p => {
+      p.classList.toggle('active', (p as HTMLElement).dataset.panel === lastActiveTab);
+    });
 
     settingsOverlay.classList.add('open');
     console.log('Settings opened');
@@ -829,16 +862,16 @@ async function checkCursorOverPet(): Promise<boolean> {
     const window = getCurrentWebviewWindow();
     const pos = await window.outerPosition();
     const scaleFactor = await window.scaleFactor();
-    
+
     // Pet is at bottom-right: 100x100px, positioned with 50px margin
     // Window is 420x400
     const margin = 50 * scaleFactor;
     const petSize = 100 * scaleFactor;
     const petX = pos.x + (420 * scaleFactor) - petSize - margin;
     const petY = pos.y + (400 * scaleFactor) - petSize - margin;
-    
+
     return cursorX >= petX && cursorX <= petX + petSize &&
-           cursorY >= petY && cursorY <= petY + petSize;
+      cursorY >= petY && cursorY <= petY + petSize;
   } catch (e) {
     return false;
   }
@@ -848,24 +881,24 @@ async function checkCursorOverPet(): Promise<boolean> {
 function startClickThroughPoller() {
   let lastState: boolean | null = null;
   let isPolling = false;
-  
+
   setInterval(async () => {
     if (isPolling) return;
     isPolling = true;
 
     try {
       // Don't change if overlays are open
-      if (!contextMenu.classList.contains('hidden') || 
-          settingsOverlay.classList.contains('open') ||
-          welcomeOverlay.classList.contains('open') ||
-          speechBubble.classList.contains('visible')) {
+      if (!contextMenu.classList.contains('hidden') ||
+        settingsOverlay.classList.contains('open') ||
+        welcomeOverlay.classList.contains('open') ||
+        speechBubble.classList.contains('visible')) {
         if (lastState !== false) {
           await setClickThrough(false);
           lastState = false;
         }
         return;
       }
-      
+
       const isOverPet = await checkCursorOverPet();
       if (isOverPet !== lastState) {
         await setClickThrough(!isOverPet);

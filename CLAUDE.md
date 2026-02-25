@@ -362,19 +362,50 @@ A single-page landing site is located in `website/` (gitignored):
 
 
 
-## New features to included as we progress
-- Idle animations - Pet does random things when not roasting (yawns, stretches, plays with toys)
-- Pet moods that change - Sometimes grumpy, sometimes supportive, based on time or random chance
-- Pet reactions to specific apps - Different responses when it sees you on Reddit vs coding vs gaming
-- Roast intensity slider - From gentle teasing to absolutely savage
-- Blacklist apps/windows - Don't capture banking, private stuff
-- Custom triggers - Roast when specific apps open or after X minutes idle
-- Activity tracking - "You spent 4 hours on YouTube today"
-- Break reminders - "You've been staring at code for 2 hours, touch grass"
-- Productivity reports - Weekly summary of your digital habits
-- System tray controls - Quick access without opening window
-- Plugin system - Let users create custom behaviors
-- Pet evolution - Pet changes appearance based on your behavior
-- Pet conversations - If you have multiple pets, they talk to each other about you
-- clear log files after 2 days
+## New features to include as we progress
+
+### 🟢 Trivial (< 1 hour)
+- **Clear log files after 2 days** — Extend existing 24h cache cleanup logic to log files
+- **Roast intensity slider** — Add config field + UI slider, inject intensity instruction into `build_prompt()`
+- **Sound effects for pet actions** — Click sounds, notification chimes on roast start/end using existing `rodio` player
+- **Global hotkey for instant roast** — Tauri 2.0 global shortcut plugin; bind a key combo to `roast_now`
+
+### 🟡 Easy (a few hours)
+- **System tray controls** — Tauri 2.0 has built-in system tray support; wire menu items to existing commands
+- **Pet moods that change** — Timer/random selector rotates through existing 10 moods automatically
+- **Blacklist apps/windows** — Check foreground window title against config list before capture, skip if matched
+- **Break reminders** — Track activity timestamps, emit "take a break" prompt if idle > threshold
+- **Right-click context menu on pet** — Quick actions: roast now, change mood, mute, settings, quit (replaces needing to open full settings)
+- **Pet click reactions** — Click/poke the pet and it reacts with a mini animation + short quip (no screenshot needed, just a canned or AI one-liner)
+- **Scheduled personalities** — Different mood at different times of day (e.g., encouraging in the morning, sarcastic after midnight)
+
+### 🟠 Medium (half-day to a day)
+- **Idle animations** — Multiple CSS animation states (yawn, stretch, play) triggered randomly when not roasting
+- **Pet reactions to specific apps** — Detect foreground app via window title, map app categories to different prompt variations
+- **Custom triggers** — Rule system for roasting on specific app launches or after X minutes idle
+- **Activity tracking** — Poll foreground window at intervals, log app usage over time with a persistent data store
+- **Multi-monitor awareness** — Let user pick which monitor to capture; optionally let pet wander between monitors
+- **Pet visual overhaul** — Replace current CSS-only blob pets with dramatically higher-quality visuals:
+  - Use SVG or sprite-sheet based pets instead of pure CSS shapes
+  - Distinct silhouettes per pet (cat with ears, robot with antenna, octopus with tentacles — not blob variations)
+  - Expressive states: happy, annoyed, sleeping, shocked, thinking (tied to mood/activity)
+  - Smooth multi-frame animations (walk cycles, idle fidgets, reaction sequences)
+  - Particle effects and environmental flair (sparkles, rain, steam, glow trails)
+  - Optional user-submitted or AI-generated pet skins
+- **Chat window with file drag-and-drop** — Toggleable mini chat panel next to the pet:
+  - Click pet or a chat icon to open a small resizable chat window
+  - Text input to talk to the pet directly (uses current vision model for responses)
+  - Drag-and-drop files/images into the chat — pet analyzes them with vision AI and responds
+  - Conversation history within the session (scrollable, auto-cleared on close or configurable)
+  - Pet reacts visually while "thinking" (loading animation, squinting expression)
+  - Supports screenshots pasted from clipboard (Ctrl+V)
+
+### 🔴 Hard (multi-day)
+- **Productivity reports** — Depends on activity tracking; aggregation logic + report UI + scheduled generation
+- **Pet evolution** — Progression state machine, multiple visual stages per pet, persistence tied to user behavior
+- **Pet conversations** — Multi-instance architecture for multiple pet windows, inter-pet conversation engine
+- **Plugin system** — Defined plugin API, loading/sandboxing mechanism (WASM/scripting), lifecycle hooks, docs
+- **Voice conversations** — Speak to the pet via microphone (STT → AI response → TTS); requires audio input handling + streaming
+- **Desktop widget mode** — Expandable dashboard showing weather, calendar, todos, or quick notes alongside the pet
+
 

@@ -288,12 +288,12 @@ impl VisionService for OllamaVisionService {
         let body = json!({
             "model": self.model,
             "messages": [{"role": "user", "content": content}],
-            "max_tokens": 2048,
+            "max_tokens": 40960,
             "temperature": 0.7,
             "stream": false,
             "options": {
                 "num_ctx": 131072,
-                "num_predict": 2048
+                "num_predict": 40960
             }
         });
 

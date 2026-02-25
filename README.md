@@ -19,6 +19,7 @@ A desktop pet that watches your screen and roasts you — rebuilt with **Tauri +
 - **Custom moods** — roast, helpful, encouraging, sarcastic, zen, anime, gordon, therapist, detective, hype, or create your own with AI improvement
 - **Intensity control** — slider from gentle (1) to brutal (10) adjusts how hard the pet goes
 - **Sound effects** — blip on roast start, chime on completion (procedurally generated, no bundled files)
+- **Global hotkey** — `Ctrl+Shift+R` triggers an instant roast from anywhere
 - **10 pet designs** — cat, ghost, robot, blob, owl, alien, pumpkin, cloud, octopus, or classic box
 - **Smooth animations** — avatar collapses during screenshot, expands on return
 - **Context memory** — remembers past roasts to call out patterns

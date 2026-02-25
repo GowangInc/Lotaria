@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
+import { register } from '@tauri-apps/plugin-global-shortcut';
 
 // Types
 interface Config {
@@ -139,6 +140,17 @@ async function init() {
 
   // Setup drag
   setupDrag();
+
+  // Register global hotkey (Ctrl+Shift+R) for instant roast
+  try {
+    await register('CommandOrControl+Shift+R', () => {
+      console.log('Global hotkey triggered - roasting!');
+      triggerRoast();
+    });
+    console.log('Global hotkey registered: Ctrl+Shift+R');
+  } catch (e) {
+    console.warn('Failed to register global hotkey:', e);
+  }
 }
 
 // Apply Windows theme and accent color

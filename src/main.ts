@@ -299,6 +299,58 @@ async function deliverRoast(result: RoastResult) {
 // Audio playback removed - handled by Rust backend via rodio
 // This prevents double-playback and audio format issues
 
+// Pet click reactions
+const PET_QUIPS = [
+  'Hey! Watch it!',
+  'Do I look like a button to you?',
+  'Poke me again, I dare you.',
+  '*yawns* Oh, it\'s you.',
+  'I was napping, thanks.',
+  'That tickles!',
+  'Stop that. I\'m working here.',
+  'You have nothing better to do?',
+  'Boop!',
+  'I see you, I judge you.',
+  'Yes? Can I help you?',
+  'Go back to work.',
+  'I\'m not a stress ball.',
+  '*stares judgmentally*',
+  'Touch grass instead.',
+];
+
+let lastPokeTime = 0;
+
+async function pokePet() {
+  const now = Date.now();
+  if (now - lastPokeTime < 1500) return; // Debounce
+  if (isProcessing) return;
+  lastPokeTime = now;
+
+  // Poke animation
+  character.classList.remove('poked');
+  void character.offsetWidth; // Force reflow to restart animation
+  character.classList.add('poked');
+  setTimeout(() => character.classList.remove('poked'), 400);
+
+  // Show random quip
+  const quip = PET_QUIPS[Math.floor(Math.random() * PET_QUIPS.length)];
+  await setClickThrough(false);
+  speechText.textContent = quip;
+  speechBubble.classList.add('visible');
+  speechBubble.classList.remove('hidden');
+
+  setTimeout(async () => {
+    speechBubble.classList.remove('visible');
+    speechBubble.classList.add('hidden');
+    if (!contextMenu.classList.contains('hidden') ||
+      settingsOverlay.classList.contains('open') ||
+      welcomeOverlay.classList.contains('open')) {
+      return;
+    }
+    await setClickThrough(true);
+  }, 3000);
+}
+
 // Show error
 async function showError(message: string) {
   await setClickThrough(false);
@@ -1031,6 +1083,18 @@ function setupEventListeners() {
   character.addEventListener('contextmenu', (e) => {
     e.preventDefault();
     showContextMenu(e.clientX, e.clientY);
+  });
+
+  // Pet click reaction (left-click, not drag)
+  let clickStartX = 0;
+  let clickStartY = 0;
+  character.addEventListener('mousedown', (e) => {
+    if (e.button === 0) { clickStartX = e.screenX; clickStartY = e.screenY; }
+  });
+  character.addEventListener('mouseup', (e) => {
+    if (e.button !== 0) return;
+    const dist = Math.hypot(e.screenX - clickStartX, e.screenY - clickStartY);
+    if (dist < 5) pokePet(); // Only trigger if not dragging
   });
 
   document.addEventListener('click', (e) => {

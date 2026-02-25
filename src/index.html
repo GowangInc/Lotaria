@@ -131,6 +131,10 @@
       animation: expand 0.3s ease-out forwards;
     }
 
+    #character.poked {
+      animation: poke 0.4s ease-out;
+    }
+
     @keyframes pulse {
 
       0%,
@@ -165,6 +169,14 @@
         transform: scale(1);
         opacity: 1;
       }
+    }
+
+    @keyframes poke {
+      0% { transform: scale(1) rotate(0deg); }
+      25% { transform: scale(1.15) rotate(-5deg); }
+      50% { transform: scale(0.9) rotate(3deg); }
+      75% { transform: scale(1.05) rotate(-2deg); }
+      100% { transform: scale(1) rotate(0deg); }
     }
 
     .character-body {

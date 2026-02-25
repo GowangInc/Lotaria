@@ -582,11 +582,15 @@ impl StateManager {
             }
         }
 
-        // Clean up roast text files
+        // Clean up roast text files, screenshots, and audio
         for entry in fs::read_dir(&self.temp_dir)? {
             if let Ok(entry) = entry {
                 let name = entry.file_name();
-                if name.to_string_lossy().starts_with("roast_") {
+                let name_str = name.to_string_lossy();
+                if name_str.starts_with("roast_")
+                    || name_str.starts_with("screenshot_")
+                    || name_str.starts_with("audio_")
+                {
                     let _ = fs::remove_file(entry.path());
                 }
             }

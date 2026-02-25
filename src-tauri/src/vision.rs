@@ -401,80 +401,246 @@ fn extract_roast_from_reasoning(reasoning: &str) -> String {
 /// Strip thinking/reasoning content that leaked into the actual response.
 /// Qwen models often dump their chain-of-thought into the content field despite /no_think.
 fn strip_thinking_from_content(text: &str) -> String {
-    // If the text contains a quoted draft, extract the last quoted block
-    // Pattern: model reasons, then writes "draft: \"actual roast here\""
-    let mut best_quoted = None;
-    let mut i = 0;
-    let chars: Vec<char> = text.chars().collect();
-    while i < chars.len() {
-        if chars[i] == '"' {
-            let start = i + 1;
-            i += 1;
-            while i < chars.len() && chars[i] != '"' {
-                if chars[i] == '\\' { i += 1; } // skip escaped chars
-                i += 1;
+    // Strategy 1: Extract the longest quoted block (the model's "draft")
+    // Handles both straight quotes and smart quotes
+    if let Some(roast) = extract_longest_quoted(text) {
+        if roast.len() > 30 {
+            return roast;
+        }
+    }
+
+    // Strategy 2: Split on known thinking markers and take the content after the last one
+    let thinking_markers = [
+        "Possible draft:",
+        "possible draft:",
+        "Let's draft:",
+        "let's draft:",
+        "Draft:",
+        "draft:",
+        "Final version:",
+        "final version:",
+        "Here's the roast:",
+        "here's the roast:",
+        "My response:",
+        "Response:",
+    ];
+
+    for marker in &thinking_markers {
+        if let Some(idx) = text.find(marker) {
+            let after = text[idx + marker.len()..].trim();
+            // Strip leading quotes if present
+            let after = after.trim_start_matches('"')
+                .trim_start_matches('\u{201c}'); // left smart quote
+            // Take until end or next thinking marker
+            let cleaned = strip_trailing_thinking(after);
+            if cleaned.len() > 30 {
+                return cleaned;
             }
-            if i < chars.len() {
-                let quoted: String = chars[start..i].iter().collect();
-                // Only consider substantial quoted blocks (likely the actual roast)
-                if quoted.len() > 40 {
-                    best_quoted = Some(quoted);
+        }
+    }
+
+    // Strategy 3: Sentence-level filtering — keep sentences that look like actual roasts
+    // (contain "you", "your", direct address) and drop meta-analysis sentences
+    let sentences = split_sentences(text);
+    let roast_sentences: Vec<&str> = sentences.iter()
+        .filter(|s| is_roast_sentence(s))
+        .copied()
+        .collect();
+
+    if !roast_sentences.is_empty() {
+        // Take up to 3 roast sentences
+        let result: String = roast_sentences.iter()
+            .take(3)
+            .copied()
+            .collect::<Vec<_>>()
+            .join(" ");
+        if result.len() > 30 {
+            return result;
+        }
+    }
+
+    // Strategy 4: Last resort — just return the original, truncated
+    text.to_string()
+}
+
+/// Extract the longest quoted block from text (straight or smart quotes)
+fn extract_longest_quoted(text: &str) -> Option<String> {
+    let mut best: Option<String> = None;
+
+    // Try straight quotes
+    for block in extract_between(text, '"', '"') {
+        if best.as_ref().map_or(true, |b| block.len() > b.len()) {
+            best = Some(block);
+        }
+    }
+    // Try smart quotes
+    for block in extract_between_str(text, "\u{201c}", "\u{201d}") {
+        if best.as_ref().map_or(true, |b| block.len() > b.len()) {
+            best = Some(block);
+        }
+    }
+
+    best
+}
+
+fn extract_between(text: &str, open: char, close: char) -> Vec<String> {
+    let mut results = Vec::new();
+    let chars: Vec<(usize, char)> = text.char_indices().collect();
+    let mut i = 0;
+    while i < chars.len() {
+        if chars[i].1 == open {
+            let content_start = chars[i].0 + chars[i].1.len_utf8();
+            i += 1;
+            while i < chars.len() {
+                if chars[i].1 == '\\' {
+                    i += 2; // skip escaped char
+                    continue;
                 }
+                if chars[i].1 == close {
+                    results.push(text[content_start..chars[i].0].to_string());
+                    break;
+                }
+                i += 1;
             }
         }
         i += 1;
     }
+    results
+}
 
-    if let Some(quoted) = best_quoted {
-        return quoted;
-    }
-
-    // No good quoted block found — strip known thinking patterns line by line
-    let lines: Vec<&str> = text.lines().collect();
-    let mut clean_lines: Vec<&str> = Vec::new();
-
-    for line in &lines {
-        let trimmed = line.trim();
-        if trimmed.is_empty() { continue; }
-
-        // Skip lines that are clearly meta-analysis / internal reasoning
-        let lower = trimmed.to_lowercase();
-        if lower.starts_with("- ")
-            && (lower.contains("need to") || lower.contains("should") || lower.contains("let's")
-                || lower.contains("draft") || lower.contains("check ") || lower.contains("possible"))
-        {
-            continue;
+fn extract_between_str(text: &str, open: &str, close: &str) -> Vec<String> {
+    let mut results = Vec::new();
+    let mut search_from = 0;
+    while let Some(start) = text[search_from..].find(open) {
+        let content_start = search_from + start + open.len();
+        if let Some(end) = text[content_start..].find(close) {
+            results.push(text[content_start..content_start + end].to_string());
+            search_from = content_start + end + close.len();
+        } else {
+            break;
         }
-        if lower.starts_with("wait,")
-            || lower.starts_with("okay,")
-            || lower.starts_with("let me")
-            || lower.starts_with("i should")
-            || lower.starts_with("i need to")
-            || lower.starts_with("first,")
-            || lower.starts_with("also,")
-            || lower.starts_with("the user")
-            || lower.starts_with("possible draft")
-            || lower.starts_with("let's draft")
-            || lower.starts_with("make it more")
-            || lower.starts_with("previous drafts")
-            || lower.starts_with("add the")
-            || lower.contains("character count")
-            || lower.contains("2-3 sentences")
-            || lower.contains("need to be brutal")
-            || lower.contains("max characters")
-        {
-            continue;
+    }
+    results
+}
+
+/// Strip trailing thinking/meta content from extracted text
+fn strip_trailing_thinking(text: &str) -> String {
+    let trailing_markers = [
+        "Check character count",
+        "check character count",
+        "Need to be",
+        "need to be",
+        "Let's count",
+        "let's count",
+        "Wait,",
+        "Make it more",
+        "make it more",
+        "Previous drafts",
+        "previous drafts",
+    ];
+
+    let mut result = text.to_string();
+    for marker in &trailing_markers {
+        if let Some(idx) = result.find(marker) {
+            result.truncate(idx);
         }
-
-        clean_lines.push(trimmed);
     }
 
-    if clean_lines.is_empty() {
-        // Everything was filtered — fall back to extract_roast_from_reasoning
-        return extract_roast_from_reasoning(text);
+    // Trim trailing quote chars and whitespace
+    result.trim_end_matches('"')
+        .trim_end_matches('\u{201d}')
+        .trim()
+        .to_string()
+}
+
+/// Split text into sentences (on . ! ?)
+fn split_sentences(text: &str) -> Vec<&str> {
+    let mut sentences = Vec::new();
+    let mut start = 0;
+    let bytes = text.as_bytes();
+
+    for (i, &b) in bytes.iter().enumerate() {
+        if (b == b'.' || b == b'!' || b == b'?')
+            && (i + 1 >= bytes.len() || bytes[i + 1] == b' ' || bytes[i + 1] == b'\n')
+        {
+            let s = text[start..=i].trim();
+            if !s.is_empty() {
+                sentences.push(s);
+            }
+            start = i + 1;
+        }
+    }
+    // Trailing fragment
+    let s = text[start..].trim();
+    if !s.is_empty() {
+        sentences.push(s);
+    }
+    sentences
+}
+
+/// Heuristic: does this sentence look like an actual roast vs meta-analysis?
+fn is_roast_sentence(s: &str) -> bool {
+    let lower = s.to_lowercase();
+
+    // Definitely meta-analysis — reject
+    let meta_patterns = [
+        "check character", "character count", "need to be", "let's count",
+        "let's draft", "possible draft", "previous draft", "make it more",
+        "2-3 sentences", "under 500", "max characters", "i should",
+        "i need to", "the user", "add the failure", "wait,",
+        "let me", "first,", "also,", "okay,",
+    ];
+    for pat in &meta_patterns {
+        if lower.contains(pat) {
+            return false;
+        }
     }
 
-    clean_lines.join(" ")
+    // Likely a roast — contains direct address or vivid language
+    let roast_signals = ["you", "your", "you're", "you've"];
+    let has_direct_address = roast_signals.iter().any(|w| {
+        lower.split_whitespace().any(|word| word.trim_matches(|c: char| !c.is_alphanumeric()) == *w)
+    });
+
+    // Also accept sentences with em-dashes, strong imagery
+    let has_style = lower.contains("—") || lower.contains("...") || lower.contains("*");
+
+    has_direct_address || has_style
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_strip_thinking_with_quoted_draft() {
+        let input = r#"Make sure it's brutal, no softening. Example: "9 PM and your terminal's still screaming 'bypass permissions' like your life's a pirated movie—while 'Beijing Dads' learns Chinese and *you* learn how many ways to fail. Your code's literally mocking you." Check character count. Need to be under 500."#;
+        let result = strip_thinking_from_content(input);
+        assert!(result.contains("9 PM"), "Should extract the quoted roast, got: {}", result);
+        assert!(!result.contains("Check character count"), "Should not contain meta-analysis, got: {}", result);
+    }
+
+    #[test]
+    fn test_strip_thinking_with_meta_sentences() {
+        let input = "Add the failure angle: their life is a pirated movie. Check character count. Previous drafts were around 2-3 sentences. Need to be brutal. 9 PM and your terminal's still screaming—while you learn how many ways to fail.";
+        let result = strip_thinking_from_content(input);
+        assert!(result.contains("your"), "Should keep roast sentences, got: {}", result);
+        assert!(!result.contains("Check character count"), "Should strip meta, got: {}", result);
+    }
+
+    #[test]
+    fn test_strip_clean_roast_unchanged() {
+        let input = "9 PM and you're still here pretending to code while your terminal judges you silently.";
+        let result = strip_thinking_from_content(input);
+        assert_eq!(result, input);
+    }
+
+    #[test]
+    fn test_strip_thinking_draft_marker() {
+        let input = "Let me think about this. Possible draft: \"Your 47 tabs are a cry for help that nobody's answering.\" That should work.";
+        let result = strip_thinking_from_content(input);
+        assert!(result.contains("47 tabs"), "Should extract after draft marker, got: {}", result);
+    }
 }
 
 /// Factory function to create the appropriate vision service

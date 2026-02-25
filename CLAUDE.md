@@ -17,14 +17,14 @@ Lotaria is a desktop pet that sits on your screen, periodically captures the scr
 - **Intensity**: Configurable roast intensity slider (1-10, default 5) injected into prompts
 - **Sound Effects**: Blip on roast start, chime on roast complete (generated sine waves via rodio)
 - **Global Hotkey**: `Ctrl+Shift+R` triggers instant roast from anywhere (Tauri global shortcut plugin)
-- **System Tray**: Tray icon with menu — Roast Now, Start/Pause Monitoring, Settings, Quit
+- **System Tray**: Tray icon with menu — Roast Now, Settings, Quit
 - **Mood Rotation**: Optional random mood selection per roast (configurable in Settings > Mood)
 - **Blacklist**: Skip roasts when specific apps/windows are in the foreground (partial title match)
 - **Break Reminders**: Configurable reminders to take a break (30min to 2hr intervals, shown via speech bubble)
 - **Context Menu**: Enhanced right-click menu with quick mood switching, mute/unmute toggle, and all core actions
 - **Pet Click Reactions**: Click/poke the pet for a bounce animation and random quip from 15 canned responses
 - **Scheduled Personalities**: Automatic mood changes by time of day (encouraging mornings, helpful midday, sarcastic afternoons, roast evenings, zen late night)
-- **Frequency**: Configurable monitoring intervals (often/frequent/infrequent)
+- **Frequency**: Configurable monitoring intervals (often/frequent/infrequent), always-on when app is running
 - **Pet Styles**: 10 highly detailed animated designs with unique personalities:
   - Each pet has multiple layers (body, pseudo-elements, shadows)
   - Custom animations (morphing, glowing, floating, waving, etc.)
@@ -206,11 +206,11 @@ dist/                   # Built frontend (gitignored)
 - `History` - Vec of recent roasts (max 20 entries), each with optional `ScreenContext`
 - `StateManager` - Handles persistence to config/cache dirs
 - `ProviderDef` - Static provider definitions with vision_models, tts_models, tts_voices, live_voices, cost_note
-- `MOOD_PROMPTS` - Built-in mood prompt templates (roast, helpful, encouraging, sarcastic)
+- `MOOD_PROMPTS` - Built-in mood prompt templates (10 moods, all 75% visual focus / 25% context)
 - `ScreenContext` - Rich metadata per observation: foreground title/process, open windows, idle seconds, perceptual hash, timestamp
 - `ContextDiff` - Computed diff between two ScreenContext snapshots (foreground changes, new/closed windows, idle time, screen similarity %)
 - `build_prompt()` - Builds final prompt using mood (or custom_mood) + history + timestamp
-- `build_prompt_with_context()` - Extends build_prompt with "WHAT CHANGED" section and anti-repetition instructions
+- `build_prompt_with_context()` - Extends build_prompt with "CURRENT SCREEN STATE" section and anti-repetition instructions
 - `add_to_history_with_context()` - Stores roast + ScreenContext for future diffing
 - **Config migration on load**: Fixes deprecated models, validates voice names against provider
 

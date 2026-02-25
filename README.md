@@ -13,14 +13,15 @@ A desktop pet that watches your screen and roasts you — rebuilt with **Tauri +
 
 ## Features
 
-- **Screen-aware roasts** — captures screen and generates context-specific commentary
+- **Screen-aware roasts** — captures screen and generates context-specific commentary (75% visual focus)
+- **Always-on monitoring** — runs automatically when app is open, configurable intervals
 - **Multi-provider AI** — Gemini (recommended), OpenAI, Anthropic, Groq, Ollama (local)
 - **Local & Cloud TTS** — Piper TTS (bundled, offline), Gemini TTS (free), OpenAI, Murf AI, ElevenLabs, Inworld AI
 - **Custom moods** — roast, helpful, encouraging, sarcastic, zen, anime, gordon, therapist, detective, hype, or create your own with AI improvement
 - **Intensity control** — slider from gentle (1) to brutal (10) adjusts how hard the pet goes
 - **Sound effects** — blip on roast start, chime on completion (procedurally generated, no bundled files)
 - **Global hotkey** — `Ctrl+Shift+R` triggers an instant roast from anywhere
-- **System tray** — tray icon with quick actions: roast, monitor, settings, quit
+- **System tray** — tray icon with quick actions: roast, settings, quit
 - **Right-click menu** — quick access to roast, mute, change mood, settings without opening full panel
 - **Mood rotation** — optionally randomize personality each roast for variety
 - **Scheduled personalities** — automatic mood changes by time of day (encouraging mornings, helpful midday, sarcastic afternoons, roast evenings, zen late night)

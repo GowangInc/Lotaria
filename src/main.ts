@@ -131,9 +131,6 @@ async function init() {
   });
 
   // Listen for tray events
-  await listen('tray-toggle-monitoring', async () => {
-    await toggleMonitoring();
-  });
   await listen('tray-open-settings', async () => {
     await showSettings();
   });
@@ -418,8 +415,6 @@ async function showContextMenu(x: number, y: number) {
 
   // Update dynamic labels
   updateMuteLabel();
-  const monitorItem = document.getElementById('menu-monitor') as HTMLElement;
-  monitorItem.textContent = config.is_active ? '⏸ Pause Monitoring' : '▶ Start Monitoring';
 
   // Populate mood submenu
   populateMoodSubmenu();
@@ -957,22 +952,13 @@ async function startFromWelcome() {
   await invoke('mark_first_run_complete');
   config.first_run = false;
 
-  // Start monitoring
-  await toggleMonitoring();
+  // Start monitoring after welcome
+  await invoke<boolean>('toggle_monitoring');
 
   welcomeOverlay.classList.remove('open');
 
   // Enable click-through now that welcome is closed
   await setClickThrough(true);
-}
-
-// Toggle monitoring
-async function toggleMonitoring() {
-  const isActive = await invoke<boolean>('toggle_monitoring');
-  config.is_active = isActive;
-
-  const monitorItem = document.getElementById('menu-monitor') as HTMLElement;
-  monitorItem.textContent = isActive ? '⏸ Pause Monitoring' : '▶ Start Monitoring';
 }
 
 // Drag support — cache position at mousedown, no async during mousemove
@@ -1103,7 +1089,6 @@ function setupEventListeners() {
 
   // Menu items
   document.getElementById('menu-roast')?.addEventListener('click', () => { hideContextMenu(); triggerRoast(); });
-  document.getElementById('menu-monitor')?.addEventListener('click', () => { hideContextMenu(); toggleMonitoring(); });
   document.getElementById('menu-settings')?.addEventListener('click', () => { hideContextMenu(); showSettings(); });
   document.getElementById('menu-quit')?.addEventListener('click', () => { hideContextMenu(); invoke('quit'); });
 

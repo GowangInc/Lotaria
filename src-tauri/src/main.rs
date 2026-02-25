@@ -57,9 +57,6 @@ fn main() {
 
             // Get initial config values BEFORE managing state
             let is_first_run = app_state.config.blocking_read().first_run;
-            let is_active = app_state.config.blocking_read().is_active;
-            
-            tracing::info!("First run: {}, Is active: {}", is_first_run, is_active);
 
             // Clone the Arcs we need for monitoring BEFORE managing state
             let monitoring_for_spawn = app_state.monitoring.clone();
@@ -104,13 +101,11 @@ fn main() {
 
             // System tray
             let roast_item = MenuItemBuilder::with_id("roast", "🔥 Roast Now").build(app)?;
-            let monitor_item = MenuItemBuilder::with_id("monitor", "▶ Start Monitoring").build(app)?;
             let settings_item = MenuItemBuilder::with_id("settings", "⚙️ Settings").build(app)?;
             let quit_item = MenuItemBuilder::with_id("quit", "Quit").build(app)?;
 
             let tray_menu = MenuBuilder::new(app)
                 .item(&roast_item)
-                .item(&monitor_item)
                 .separator()
                 .item(&settings_item)
                 .separator()
@@ -128,9 +123,6 @@ fn main() {
                         "roast" => {
                             let _ = app.emit("monitoring-tick", ());
                         }
-                        "monitor" => {
-                            let _ = app.emit("tray-toggle-monitoring", ());
-                        }
                         "settings" => {
                             let _ = app.emit("tray-open-settings", ());
                         }
@@ -144,20 +136,58 @@ fn main() {
 
             tracing::info!("System tray created");
 
-            // Auto-start monitoring if not first run and was previously active
-            if !is_first_run && is_active {
+            // Always start monitoring (after first run setup)
+            if !is_first_run {
                 tracing::info!("Auto-starting monitoring...");
                 *monitoring_for_spawn.lock().unwrap() = true;
+
+                // Save is_active = true
+                {
+                    let mut cfg = config_lock_for_spawn.blocking_write();
+                    cfg.is_active = true;
+                    let sm_ref = app.state::<AppState>();
+                    let _ = sm_ref.state_manager.save_config(&cfg);
+                }
+
                 let app_handle = app.handle().clone();
-                
-                // Spawn monitoring in a new thread to avoid blocking
+                let mon = monitoring_for_spawn.clone();
+                let cfg_lock = config_lock_for_spawn.clone();
+
                 std::thread::spawn(move || {
                     let rt = tokio::runtime::Runtime::new().unwrap();
                     rt.block_on(async {
-                        super_monitoring_loop(app_handle, monitoring_for_spawn, config_lock_for_spawn).await;
+                        use tokio::time::{sleep, Duration};
+                        use lotaria::state::get_interval_seconds;
+
+                        let mut elapsed_secs: u64 = 0;
+                        let mut interval_secs = {
+                            let config = cfg_lock.read().await;
+                            get_interval_seconds(&config.interval, config.gemini_free_tier, &config.tts_provider)
+                        };
+                        tracing::info!("Monitoring loop started, interval: {}s", interval_secs);
+
+                        loop {
+                            let active = mon.lock().map(|g| *g).unwrap_or(false);
+                            if !active { tracing::info!("Monitoring stopped"); break; }
+
+                            if elapsed_secs >= interval_secs {
+                                tracing::info!("Triggering roast after {}s", elapsed_secs);
+                                elapsed_secs = 0;
+                                let _ = app_handle.emit("monitoring-tick", ());
+
+                                interval_secs = {
+                                    let config = cfg_lock.read().await;
+                                    get_interval_seconds(&config.interval, config.gemini_free_tier, &config.tts_provider)
+                                };
+                                tracing::info!("Next interval: {}s", interval_secs);
+                            }
+
+                            sleep(Duration::from_secs(1)).await;
+                            elapsed_secs += 1;
+                        }
                     });
                 });
-                
+
                 tracing::info!("Monitoring thread spawned");
             }
 
@@ -192,68 +222,4 @@ fn main() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
-}
-
-/// Monitoring loop for auto-start
-async fn super_monitoring_loop(
-    app_handle: tauri::AppHandle,
-    monitoring: std::sync::Arc<std::sync::Mutex<bool>>,
-    config_lock: std::sync::Arc<tokio::sync::RwLock<lotaria::state::Config>>,
-) {
-    use tokio::time::{sleep, Duration};
-    use lotaria::state::get_interval_seconds;
-
-    tracing::info!("Monitoring loop started");
-
-    let mut elapsed_secs: u64 = 0;
-
-    // Calculate interval ONCE at start, then only after each roast
-    let mut interval_secs = {
-        let config = config_lock.read().await;
-        get_interval_seconds(
-            &config.interval,
-            config.gemini_free_tier,
-            &config.tts_provider,
-        )
-    };
-    tracing::info!("Initial interval: {} seconds", interval_secs);
-
-    loop {
-        let is_active = match monitoring.lock() {
-            Ok(g) => *g,
-            Err(_) => {
-                tracing::error!("Failed to lock monitoring mutex");
-                break;
-            }
-        };
-
-        if !is_active {
-            tracing::info!("Monitoring stopped");
-            break;
-        }
-
-        if elapsed_secs >= interval_secs {
-            tracing::info!("Triggering roast after {} seconds...", elapsed_secs);
-            elapsed_secs = 0;
-            if let Err(e) = app_handle.emit("monitoring-tick", ()) {
-                tracing::error!("Failed to emit monitoring tick: {}", e);
-            }
-
-            // Recalculate interval for NEXT roast
-            interval_secs = {
-                let config = config_lock.read().await;
-                get_interval_seconds(
-                    &config.interval,
-                    config.gemini_free_tier,
-                    &config.tts_provider,
-                )
-            };
-            tracing::info!("Next interval: {} seconds", interval_secs);
-        }
-
-        sleep(Duration::from_secs(1)).await;
-        elapsed_secs += 1;
-    }
-
-    tracing::info!("Monitoring loop ended");
 }

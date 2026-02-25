@@ -196,7 +196,8 @@ The pet lives in a transparent, frameless window that stays always-on-top. The a
 
 **Controls:**
 - **Left-click + drag** — Move the pet anywhere on screen
-- **Right-click** — Open context menu (Roast Now, Start/Pause Monitoring, Settings, Quit)
+- **Left-click** — Poke the pet for a random quip and bounce animation
+- **Right-click** — Open context menu (Roast Now, Monitoring, Mute, Change Mood, Settings, Quit)
 - **Click outside menu** — Close context menu and return to click-through mode
 
 The pet automatically detects when your cursor is over it (within the 100×100px avatar area) and switches between interactive and pass-through modes.

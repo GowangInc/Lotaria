@@ -7,7 +7,8 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
-    port: 1420,
+    host: "127.0.0.1",
+    port: 5420,
     strictPort: true,
   },
 });

@@ -2,6 +2,7 @@ use crate::capture::ScreenCapture;
 use crate::state::{get_interval_seconds, truncate_response, Config, History, ProviderDef, StateManager, INTERVAL_PRESETS};
 use crate::tts::{self, create_tts_service, SoundEffects};
 use crate::vision::create_vision_service;
+use chrono::Timelike;
 use serde::Serialize;
 use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, State, Emitter};
@@ -131,6 +132,17 @@ pub async fn roast_now(
         let idx = rand::thread_rng().gen_range(0..MOOD_PROMPTS.len());
         config.mood = MOOD_PROMPTS[idx].0.to_string();
         tracing::info!("Mood rotated to: {}", config.mood);
+    } else if config.mood_rotation == "scheduled" && config.mood != "custom" {
+        let hour = chrono::Local::now().hour();
+        let scheduled_mood = match hour {
+            6..=10 => "encouraging",   // Morning: cheerful start
+            11..=14 => "helpful",      // Midday: productivity focus
+            15..=18 => "sarcastic",    // Afternoon: dry wit
+            19..=22 => "roast",        // Evening: savage mode
+            _ => "zen",               // Late night: philosophical
+        };
+        config.mood = scheduled_mood.to_string();
+        tracing::info!("Scheduled mood for hour {}: {}", hour, scheduled_mood);
     }
 
     // Check blacklist — skip roast if foreground window matches

@@ -23,6 +23,7 @@ A desktop pet that watches your screen and roasts you — rebuilt with **Tauri +
 - **System tray** — tray icon with quick actions: roast, monitor, settings, quit
 - **Right-click menu** — quick access to roast, mute, change mood, settings without opening full panel
 - **Mood rotation** — optionally randomize personality each roast for variety
+- **Scheduled personalities** — automatic mood changes by time of day (encouraging mornings, helpful midday, sarcastic afternoons, roast evenings, zen late night)
 - **App blacklist** — skip roasts when specific apps/windows are in the foreground
 - **Break reminders** — configurable reminders to take a break after continuous screen time
 - **Pet click reactions** — click the pet for a poke animation and random quip

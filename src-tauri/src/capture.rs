@@ -55,3 +55,43 @@ pub struct CaptureResult {
     pub base64: String,
     pub filepath: std::path::PathBuf,
 }
+
+/// Compute an 8x8 average perceptual hash from PNG bytes.
+/// Returns a 16-char hex string representing a 64-bit hash.
+pub fn compute_average_hash(png_bytes: &[u8]) -> String {
+    use image::ImageReader;
+    use std::io::Cursor;
+
+    let img = match ImageReader::new(Cursor::new(png_bytes))
+        .with_guessed_format()
+        .and_then(|r| r.decode().map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e)))
+    {
+        Ok(img) => img,
+        Err(_) => return "0000000000000000".to_string(),
+    };
+
+    let small = image::imageops::resize(
+        &img.to_luma8(), 8, 8,
+        image::imageops::FilterType::Triangle,
+    );
+
+    let pixels: Vec<u8> = small.pixels().map(|p| p.0[0]).collect();
+    let mean: u64 = pixels.iter().map(|&p| p as u64).sum::<u64>() / 64;
+
+    let mut hash: u64 = 0;
+    for (i, &pixel) in pixels.iter().enumerate() {
+        if pixel as u64 >= mean {
+            hash |= 1 << i;
+        }
+    }
+
+    format!("{:016x}", hash)
+}
+
+/// Compute similarity between two hex hash strings as percentage (0-100).
+pub fn hash_similarity(hash_a: &str, hash_b: &str) -> u8 {
+    let a = u64::from_str_radix(hash_a, 16).unwrap_or(0);
+    let b = u64::from_str_radix(hash_b, 16).unwrap_or(0);
+    let hamming = (a ^ b).count_ones();
+    ((64 - hamming) as f32 / 64.0 * 100.0).round() as u8
+}

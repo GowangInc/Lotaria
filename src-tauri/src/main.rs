@@ -118,6 +118,9 @@ fn main() {
                 .build()?;
 
             let _tray = TrayIconBuilder::new()
+                .icon(tauri::image::Image::from_path("icons/32x32.png").unwrap_or_else(|_| {
+                    tauri::image::Image::from_bytes(include_bytes!("../icons/32x32.png")).expect("bundled icon")
+                }))
                 .menu(&tray_menu)
                 .tooltip("Lotaria")
                 .on_menu_event(move |app, event| {
@@ -202,7 +205,19 @@ async fn super_monitoring_loop(
 
     tracing::info!("Monitoring loop started");
 
-    let mut elapsed_secs = 0;
+    let mut elapsed_secs: u64 = 0;
+
+    // Calculate interval ONCE at start, then only after each roast
+    let mut interval_secs = {
+        let config = config_lock.read().await;
+        get_interval_seconds(
+            &config.interval,
+            config.gemini_free_tier,
+            &config.tts_provider,
+        )
+    };
+    tracing::info!("Initial interval: {} seconds", interval_secs);
+
     loop {
         let is_active = match monitoring.lock() {
             Ok(g) => *g,
@@ -211,20 +226,11 @@ async fn super_monitoring_loop(
                 break;
             }
         };
-        
+
         if !is_active {
             tracing::info!("Monitoring stopped");
             break;
         }
-
-        let interval_secs = {
-            let config = config_lock.read().await;
-            get_interval_seconds(
-                &config.interval,
-                config.gemini_free_tier,
-                &config.tts_provider,
-            )
-        };
 
         if elapsed_secs >= interval_secs {
             tracing::info!("Triggering roast after {} seconds...", elapsed_secs);
@@ -232,6 +238,17 @@ async fn super_monitoring_loop(
             if let Err(e) = app_handle.emit("monitoring-tick", ()) {
                 tracing::error!("Failed to emit monitoring tick: {}", e);
             }
+
+            // Recalculate interval for NEXT roast
+            interval_secs = {
+                let config = config_lock.read().await;
+                get_interval_seconds(
+                    &config.interval,
+                    config.gemini_free_tier,
+                    &config.tts_provider,
+                )
+            };
+            tracing::info!("Next interval: {} seconds", interval_secs);
         }
 
         sleep(Duration::from_secs(1)).await;

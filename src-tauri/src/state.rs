@@ -317,14 +317,130 @@ impl Default for Config {
     }
 }
 
+/// Rich metadata captured alongside each screenshot
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ScreenContext {
+    pub foreground_title: String,
+    pub foreground_process: String,
+    pub open_windows: Vec<String>,
+    pub idle_seconds: u64,
+    pub screen_hash: String,
+    pub timestamp: i64,
+}
+
+/// Computed diff between two ScreenContext snapshots (not persisted)
+pub struct ContextDiff {
+    pub foreground_changed: bool,
+    pub prev_foreground: String,
+    pub curr_foreground: String,
+    pub new_windows: Vec<String>,
+    pub closed_windows: Vec<String>,
+    pub idle_seconds: u64,
+    pub seconds_since_last_roast: i64,
+    pub screen_similarity_pct: u8,
+    pub is_first_observation: bool,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HistoryEntry {
     pub roast: String,
     pub time: String,
     pub timestamp: i64,
+    #[serde(default)]
+    pub context: Option<ScreenContext>,
 }
 
 pub type History = Vec<HistoryEntry>;
+
+impl ScreenContext {
+    pub fn diff_from(&self, prev: &ScreenContext) -> ContextDiff {
+        use std::collections::HashSet;
+        let prev_windows: HashSet<&str> = prev.open_windows.iter().map(|s| s.as_str()).collect();
+        let curr_windows: HashSet<&str> = self.open_windows.iter().map(|s| s.as_str()).collect();
+
+        let new_windows: Vec<String> = curr_windows.difference(&prev_windows)
+            .map(|s| s.to_string()).collect();
+        let closed_windows: Vec<String> = prev_windows.difference(&curr_windows)
+            .map(|s| s.to_string()).collect();
+
+        let screen_similarity_pct = crate::capture::hash_similarity(
+            &prev.screen_hash, &self.screen_hash,
+        );
+
+        ContextDiff {
+            foreground_changed: self.foreground_title != prev.foreground_title,
+            prev_foreground: prev.foreground_title.clone(),
+            curr_foreground: self.foreground_title.clone(),
+            new_windows,
+            closed_windows,
+            idle_seconds: self.idle_seconds,
+            seconds_since_last_roast: self.timestamp - prev.timestamp,
+            screen_similarity_pct,
+            is_first_observation: false,
+        }
+    }
+}
+
+impl ContextDiff {
+    pub fn first_observation(ctx: &ScreenContext) -> Self {
+        ContextDiff {
+            foreground_changed: false,
+            prev_foreground: String::new(),
+            curr_foreground: ctx.foreground_title.clone(),
+            new_windows: ctx.open_windows.clone(),
+            closed_windows: Vec::new(),
+            idle_seconds: ctx.idle_seconds,
+            seconds_since_last_roast: 0,
+            screen_similarity_pct: 0,
+            is_first_observation: true,
+        }
+    }
+
+    pub fn to_prompt_text(&self) -> String {
+        let mut lines = Vec::new();
+
+        if self.is_first_observation {
+            lines.push(format!("CURRENT APP: {}", self.curr_foreground));
+            if self.idle_seconds > 60 {
+                lines.push(format!("IDLE: User inactive for {} min", self.idle_seconds / 60));
+            }
+            return lines.join("\n");
+        }
+
+        if self.foreground_changed {
+            lines.push(format!("SWITCHED: {} -> {}", self.prev_foreground, self.curr_foreground));
+        } else {
+            let mins = self.seconds_since_last_roast / 60;
+            if mins > 0 {
+                lines.push(format!("STILL ON: {} ({} min)", self.curr_foreground, mins));
+            } else {
+                lines.push(format!("STILL ON: {}", self.curr_foreground));
+            }
+        }
+
+        if !self.new_windows.is_empty() {
+            let display: Vec<_> = self.new_windows.iter().take(3).cloned().collect();
+            lines.push(format!("OPENED: {}", display.join(", ")));
+        }
+        if !self.closed_windows.is_empty() {
+            let display: Vec<_> = self.closed_windows.iter().take(3).cloned().collect();
+            lines.push(format!("CLOSED: {}", display.join(", ")));
+        }
+
+        if self.idle_seconds > 120 {
+            lines.push(format!("IDLE: No input for {} min", self.idle_seconds / 60));
+        }
+
+        if self.screen_similarity_pct > 90 {
+            lines.push(format!(
+                "SCREEN: {}% same as last time — find something NEW to comment on",
+                self.screen_similarity_pct
+            ));
+        }
+
+        lines.join("\n")
+    }
+}
 
 /// Mood prompts for generating roasts
 pub const MOOD_PROMPTS: &[(&str, &str)] = &[
@@ -556,6 +672,7 @@ impl StateManager {
                 .map(|dt| dt.format("%H:%M").to_string())
                 .unwrap_or_else(|| "--:--".to_string()),
             timestamp,
+            context: None,
         };
 
         history.push(entry);
@@ -691,6 +808,79 @@ impl StateManager {
         }
 
         full_prompt
+    }
+
+    pub fn build_prompt_with_context(
+        &self,
+        config: &Config,
+        history: &History,
+        current_context: &ScreenContext,
+    ) -> String {
+        let mut full_prompt = self.build_prompt(config, history);
+
+        // Find the most recent history entry that has context
+        let prev_context = history.iter().rev()
+            .find_map(|entry| entry.context.as_ref());
+
+        let diff = match prev_context {
+            Some(prev) => current_context.diff_from(prev),
+            None => ContextDiff::first_observation(current_context),
+        };
+
+        let diff_text = diff.to_prompt_text();
+        if !diff_text.is_empty() {
+            // Insert BEFORE the history section so the model sees context first
+            if let Some(idx) = full_prompt.find("\n\nPREVIOUS OBSERVATIONS") {
+                full_prompt.insert_str(idx, &format!(
+                    "\n\nWHAT CHANGED SINCE LAST CHECK:\n{}", diff_text
+                ));
+            } else {
+                full_prompt.push_str(&format!(
+                    "\n\nWHAT CHANGED SINCE LAST CHECK:\n{}", diff_text
+                ));
+            }
+        }
+
+        // Anti-repetition instruction when screen is very similar
+        if !diff.is_first_observation && diff.screen_similarity_pct > 85 {
+            full_prompt.push_str(
+                "\n\nIMPORTANT: The screen looks very similar to last time. \
+                 Do NOT repeat your previous observations. Find something new, \
+                 or comment on the fact that nothing has changed."
+            );
+        }
+
+        full_prompt
+    }
+
+    pub fn add_to_history_with_context(
+        &self,
+        roast: &str,
+        timestamp: i64,
+        context: ScreenContext,
+        history: &mut History,
+    ) -> Result<()> {
+        let entry = HistoryEntry {
+            roast: roast.to_string(),
+            time: DateTime::from_timestamp(timestamp, 0)
+                .map(|dt| dt.format("%H:%M").to_string())
+                .unwrap_or_else(|| "--:--".to_string()),
+            timestamp,
+            context: Some(context),
+        };
+
+        history.push(entry);
+
+        if history.len() > MAX_HISTORY {
+            history.remove(0);
+        }
+
+        self.save_history(history)?;
+
+        let text_file = self.temp_dir.join(format!("roast_{}.txt", timestamp));
+        fs::write(&text_file, roast)?;
+
+        Ok(())
     }
 
     pub fn get_masked_api_keys(&self, config: &Config) -> HashMap<String, String> {

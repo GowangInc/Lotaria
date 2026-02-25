@@ -1,5 +1,5 @@
 use crate::capture::ScreenCapture;
-use crate::state::{get_interval_seconds, truncate_response, Config, History, ProviderDef, StateManager, INTERVAL_PRESETS};
+use crate::state::{get_interval_seconds, truncate_response, Config, History, ProviderDef, ScreenContext, StateManager, INTERVAL_PRESETS};
 use crate::tts::{self, create_tts_service, SoundEffects};
 use crate::vision::create_vision_service;
 use chrono::Timelike;
@@ -185,6 +185,15 @@ pub async fn roast_now(
         SoundEffects::play_start();
     }
 
+    // --- Gather screen context BEFORE hiding window ---
+    let ctx_foreground_title = get_foreground_window_title().unwrap_or_default();
+    let ctx_foreground_process = get_foreground_process_name().unwrap_or_default();
+    let ctx_open_windows = enumerate_visible_windows();
+    let ctx_idle_seconds = get_system_idle_seconds();
+
+    tracing::info!("Screen context: fg='{}' proc='{}' windows={} idle={}s",
+        ctx_foreground_title, ctx_foreground_process, ctx_open_windows.len(), ctx_idle_seconds);
+
     // Move window off-screen before capture
     let original_pos = window.outer_position().map_err(|e| e.to_string())?;
     window.set_position(tauri::Position::Physical(tauri::PhysicalPosition { x: -1000, y: -1000 }))
@@ -201,9 +210,21 @@ pub async fn roast_now(
     window.set_position(tauri::Position::Physical(tauri::PhysicalPosition { x: original_pos.x, y: original_pos.y }))
         .map_err(|e| e.to_string())?;
 
-    // Build prompt
+    // Compute perceptual hash from captured image
+    let screen_hash = crate::capture::compute_average_hash(&capture.png_bytes);
+
+    let screen_context = ScreenContext {
+        foreground_title: ctx_foreground_title,
+        foreground_process: ctx_foreground_process,
+        open_windows: ctx_open_windows,
+        idle_seconds: ctx_idle_seconds,
+        screen_hash,
+        timestamp: chrono::Local::now().timestamp(),
+    };
+
+    // Build prompt with context diff
     let history = state.history.read().await;
-    let prompt = state.state_manager.build_prompt(&config, &history);
+    let prompt = state.state_manager.build_prompt_with_context(&config, &history, &screen_context);
     drop(history);
 
     // Analyze with vision service
@@ -228,9 +249,9 @@ pub async fn roast_now(
 
     let timestamp = chrono::Local::now().timestamp();
 
-    // Add to history
+    // Add to history with context
     let mut history = state.history.write().await;
-    state.state_manager.add_to_history(&analysis, timestamp, &mut history)
+    state.state_manager.add_to_history_with_context(&analysis, timestamp, screen_context, &mut history)
         .map_err(|e| e.to_string())?;
     drop(history);
 
@@ -619,6 +640,127 @@ fn get_foreground_window_title() -> Option<String> {
     {
         None
     }
+}
+
+/// Get the foreground window's process name (e.g. "Code.exe", "chrome.exe")
+fn get_foreground_process_name() -> Option<String> {
+    #[cfg(target_os = "windows")]
+    {
+        extern "system" {
+            fn GetForegroundWindow() -> isize;
+            fn GetWindowThreadProcessId(hWnd: isize, lpdwProcessId: *mut u32) -> u32;
+            fn OpenProcess(dwDesiredAccess: u32, bInheritHandle: i32, dwProcessId: u32) -> isize;
+            fn CloseHandle(hObject: isize) -> i32;
+            fn QueryFullProcessImageNameW(
+                hProcess: isize, dwFlags: u32,
+                lpExeName: *mut u16, lpdwSize: *mut u32,
+            ) -> i32;
+        }
+        const PROCESS_QUERY_LIMITED_INFORMATION: u32 = 0x1000;
+
+        unsafe {
+            let hwnd = GetForegroundWindow();
+            if hwnd == 0 { return None; }
+
+            let mut pid: u32 = 0;
+            GetWindowThreadProcessId(hwnd, &mut pid);
+            if pid == 0 { return None; }
+
+            let handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid);
+            if handle == 0 { return None; }
+
+            let mut buf = [0u16; 512];
+            let mut size = buf.len() as u32;
+            let ok = QueryFullProcessImageNameW(handle, 0, buf.as_mut_ptr(), &mut size);
+            CloseHandle(handle);
+
+            if ok != 0 && size > 0 {
+                let full_path = String::from_utf16_lossy(&buf[..size as usize]);
+                full_path.rsplit('\\').next().map(|s| s.to_string())
+            } else {
+                None
+            }
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    { None }
+}
+
+/// Enumerate all visible windows with non-empty titles
+fn enumerate_visible_windows() -> Vec<String> {
+    #[cfg(target_os = "windows")]
+    {
+        extern "system" {
+            fn EnumWindows(lpEnumFunc: extern "system" fn(isize, isize) -> i32, lParam: isize) -> i32;
+            fn IsWindowVisible(hWnd: isize) -> i32;
+            fn GetWindowTextW(hWnd: isize, lpString: *mut u16, nMaxCount: i32) -> i32;
+            fn GetWindowTextLengthW(hWnd: isize) -> i32;
+        }
+
+        use std::sync::Mutex as StdMutex;
+        static RESULTS: StdMutex<Vec<String>> = StdMutex::new(Vec::new());
+
+        extern "system" fn enum_callback(hwnd: isize, _: isize) -> i32 {
+            unsafe {
+                if IsWindowVisible(hwnd) == 0 { return 1; }
+                let len = GetWindowTextLengthW(hwnd);
+                if len <= 0 { return 1; }
+
+                let mut buf = vec![0u16; (len + 1) as usize];
+                let actual = GetWindowTextW(hwnd, buf.as_mut_ptr(), buf.len() as i32);
+                if actual > 0 {
+                    let title = String::from_utf16_lossy(&buf[..actual as usize]);
+                    if title.len() > 1
+                        && title != "Program Manager"
+                        && !title.starts_with("MSCTFIME")
+                    {
+                        if let Ok(mut results) = RESULTS.lock() {
+                            results.push(title);
+                        }
+                    }
+                }
+            }
+            1
+        }
+
+        if let Ok(mut r) = RESULTS.lock() { r.clear(); }
+        unsafe { EnumWindows(enum_callback, 0); }
+        RESULTS.lock().map(|r| r.clone()).unwrap_or_default()
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    { Vec::new() }
+}
+
+/// Get seconds since last user input (mouse/keyboard)
+fn get_system_idle_seconds() -> u64 {
+    #[cfg(target_os = "windows")]
+    {
+        #[repr(C)]
+        struct LASTINPUTINFO {
+            cb_size: u32,
+            dw_time: u32,
+        }
+        extern "system" {
+            fn GetLastInputInfo(plii: *mut LASTINPUTINFO) -> i32;
+            fn GetTickCount() -> u32;
+        }
+
+        unsafe {
+            let mut lii = LASTINPUTINFO { cb_size: 8, dw_time: 0 };
+            if GetLastInputInfo(&mut lii) != 0 {
+                let now = GetTickCount();
+                let elapsed_ms = now.wrapping_sub(lii.dw_time);
+                (elapsed_ms / 1000) as u64
+            } else {
+                0
+            }
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    { 0 }
 }
 
 /// Check if Ollama is running and fetch available models

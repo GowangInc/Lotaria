@@ -31,7 +31,8 @@ Lotaria is a desktop pet that sits on your screen, periodically captures the scr
   - Unique color schemes and visual effects
   - Environmental effects (scanlines, energy fields, rain, ripples)
 - **Animations**: Avatar collapses before screenshot, expands after capture
-- **History**: Last 20 roasts saved to config dir for context/callbacks
+- **Screen Context**: Rich metadata captured per observation — foreground app/process, open windows, idle time, perceptual screen hash; structured diffs injected into prompts to highlight changes and avoid repetition
+- **History**: Last 20 roasts saved to config dir for context/callbacks (with optional ScreenContext metadata)
 - **Storage**: Images + audio saved to cache dir, auto-cleanup after 24h; log files auto-cleanup after 48h
 - **Build**: Vite builds frontend to `dist/`, Tauri bundles into native app
 - **Settings**: Save button at bottom of settings panel; config persisted on save
@@ -202,17 +203,23 @@ dist/                   # Built frontend (gitignored)
   - `custom_mood: String` - User's custom mood prompt (when mood == "custom")
   - `pet_style: String` - Selected pet design (default/cat/ghost/robot/etc.)
   - Vision/TTS provider configs, API keys, etc.
-- `History` - Vec of recent roasts (max 20 entries)
+- `History` - Vec of recent roasts (max 20 entries), each with optional `ScreenContext`
 - `StateManager` - Handles persistence to config/cache dirs
 - `ProviderDef` - Static provider definitions with vision_models, tts_models, tts_voices, live_voices, cost_note
 - `MOOD_PROMPTS` - Built-in mood prompt templates (roast, helpful, encouraging, sarcastic)
+- `ScreenContext` - Rich metadata per observation: foreground title/process, open windows, idle seconds, perceptual hash, timestamp
+- `ContextDiff` - Computed diff between two ScreenContext snapshots (foreground changes, new/closed windows, idle time, screen similarity %)
 - `build_prompt()` - Builds final prompt using mood (or custom_mood) + history + timestamp
+- `build_prompt_with_context()` - Extends build_prompt with "WHAT CHANGED" section and anti-repetition instructions
+- `add_to_history_with_context()` - Stores roast + ScreenContext for future diffing
 - **Config migration on load**: Fixes deprecated models, validates voice names against provider
 
 **Screen Capture** (`capture.rs`):
 - `ScreenCapture::capture_primary()` - Returns PNG bytes + base64
 - Uses `xcap` for cross-platform monitor capture
 - Saves to cache dir
+- `compute_average_hash()` - 8x8 perceptual hash for screen similarity detection
+- `hash_similarity()` - Hamming distance between hashes as 0-100% similarity
 
 **Vision** (`vision.rs`):
 - `VisionService` trait - async analyze(image, prompt) -> text
@@ -233,11 +240,12 @@ dist/                   # Built frontend (gitignored)
 
 **Commands** (`commands.rs`):
 - All Tauri command handlers
-- `roast_now` - Main capture → analyze → TTS flow
+- `roast_now` - Main capture → analyze → TTS flow (gathers ScreenContext before capture, computes perceptual hash after, uses context-aware prompt building)
 - `toggle_monitoring` - Background interval task
 - `get_moods` - Returns list of available moods (built-in)
 - `improve_mood` - Uses vision API to enhance custom mood prompts
 - `AppState` - Shared state with tokio::sync::RwLock
+- Windows FFI helpers (internal): `get_foreground_window_title()`, `get_foreground_process_name()`, `enumerate_visible_windows()`, `get_system_idle_seconds()`
 
 ### Frontend
 

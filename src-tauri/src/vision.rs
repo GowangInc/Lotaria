@@ -292,7 +292,7 @@ impl VisionService for OllamaVisionService {
             "temperature": 0.7,
             "stream": false,
             "options": {
-                "num_ctx": 4096,
+                "num_ctx": 131072,
                 "num_predict": 512
             }
         });
@@ -316,23 +316,22 @@ impl VisionService for OllamaVisionService {
         tracing::info!("Ollama API response body: {}", response_text);
 
         let openai_response: OpenAIResponse = serde_json::from_str(&response_text)?;
-        let text = openai_response.choices.get(0)
+        let raw_text = openai_response.choices.get(0)
             .map(|c| {
-                // Prefer content field first (the actual response)
                 if !c.message.content.is_empty() {
                     return c.message.content.clone();
                 }
-                // If content is empty but reasoning exists, extract the roast from reasoning
                 if let Some(reasoning) = &c.message.reasoning {
                     if !reasoning.is_empty() {
-                        // Extract the actual roast from the reasoning field
-                        // Look for the last few sentences that sound like the actual roast
                         return extract_roast_from_reasoning(reasoning);
                     }
                 }
                 String::new()
             })
             .unwrap_or_default();
+
+        // Strip any thinking/reasoning that leaked into the content
+        let text = strip_thinking_from_content(&raw_text);
 
         tracing::info!("Ollama analysis result: {}", text);
         Ok(text)
@@ -397,6 +396,85 @@ fn extract_roast_from_reasoning(reasoning: &str) -> String {
     // Reverse to get original order
     roast_lines.reverse();
     roast_lines.join(" ")
+}
+
+/// Strip thinking/reasoning content that leaked into the actual response.
+/// Qwen models often dump their chain-of-thought into the content field despite /no_think.
+fn strip_thinking_from_content(text: &str) -> String {
+    // If the text contains a quoted draft, extract the last quoted block
+    // Pattern: model reasons, then writes "draft: \"actual roast here\""
+    let mut best_quoted = None;
+    let mut i = 0;
+    let chars: Vec<char> = text.chars().collect();
+    while i < chars.len() {
+        if chars[i] == '"' {
+            let start = i + 1;
+            i += 1;
+            while i < chars.len() && chars[i] != '"' {
+                if chars[i] == '\\' { i += 1; } // skip escaped chars
+                i += 1;
+            }
+            if i < chars.len() {
+                let quoted: String = chars[start..i].iter().collect();
+                // Only consider substantial quoted blocks (likely the actual roast)
+                if quoted.len() > 40 {
+                    best_quoted = Some(quoted);
+                }
+            }
+        }
+        i += 1;
+    }
+
+    if let Some(quoted) = best_quoted {
+        return quoted;
+    }
+
+    // No good quoted block found — strip known thinking patterns line by line
+    let lines: Vec<&str> = text.lines().collect();
+    let mut clean_lines: Vec<&str> = Vec::new();
+
+    for line in &lines {
+        let trimmed = line.trim();
+        if trimmed.is_empty() { continue; }
+
+        // Skip lines that are clearly meta-analysis / internal reasoning
+        let lower = trimmed.to_lowercase();
+        if lower.starts_with("- ")
+            && (lower.contains("need to") || lower.contains("should") || lower.contains("let's")
+                || lower.contains("draft") || lower.contains("check ") || lower.contains("possible"))
+        {
+            continue;
+        }
+        if lower.starts_with("wait,")
+            || lower.starts_with("okay,")
+            || lower.starts_with("let me")
+            || lower.starts_with("i should")
+            || lower.starts_with("i need to")
+            || lower.starts_with("first,")
+            || lower.starts_with("also,")
+            || lower.starts_with("the user")
+            || lower.starts_with("possible draft")
+            || lower.starts_with("let's draft")
+            || lower.starts_with("make it more")
+            || lower.starts_with("previous drafts")
+            || lower.starts_with("add the")
+            || lower.contains("character count")
+            || lower.contains("2-3 sentences")
+            || lower.contains("need to be brutal")
+            || lower.contains("max characters")
+        {
+            continue;
+        }
+
+        clean_lines.push(trimmed);
+    }
+
+    if clean_lines.is_empty() {
+        // Everything was filtered — fall back to extract_roast_from_reasoning
+        return extract_roast_from_reasoning(text);
+    }
+
+    clean_lines.join(" ")
 }
 
 /// Factory function to create the appropriate vision service

@@ -29,7 +29,8 @@ A desktop pet that watches your screen and roasts you — rebuilt with **Tauri +
 - **Pet click reactions** — click the pet for a poke animation and random quip
 - **10 pet designs** — cat, ghost, robot, blob, owl, alien, pumpkin, cloud, octopus, or classic box
 - **Smooth animations** — avatar collapses during screenshot, expands on return
-- **Context memory** — remembers past roasts to call out patterns
+- **Screen context awareness** — tracks foreground app, open windows, idle time, and screen changes between observations
+- **Context memory** — remembers past roasts to call out patterns, with structured diffs to avoid repetition
 - **Offline capable** — Use Ollama for vision + Piper for TTS with zero API costs
 - **Tiny footprint** — entire app under 15MB (plus optional voice models)
 - **Cross-platform** — Windows, macOS, Linux (Windows only for now)

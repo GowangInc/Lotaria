@@ -1,6 +1,6 @@
 [package]
 name = "lotaria"
-version = "0.3.1"
+version = "0.4.0"
 description = "A desktop pet that watches your screen and roasts you"
 authors = ["Lotaria"]
 edition = "2021"
@@ -63,6 +63,9 @@ async-trait = "0.1"
 
 # PNG encoding
 png = "0.18"
+
+# Image processing (for perceptual hashing)
+image = "0.25"
 
 # Byte manipulation
 bytemuck = "1.21"

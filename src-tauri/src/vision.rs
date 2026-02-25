@@ -270,19 +270,11 @@ impl VisionService for OllamaVisionService {
         tracing::info!("Ollama Vision API call - model: {}, prompt_len: {}, image_len: {}",
             self.model, prompt.len(), image_base64.len());
 
-        let mut content = vec![json!({"type": "text", "text": prompt})];
-        if !image_base64.is_empty() {
-            content.push(json!({
-                "type": "image_url",
-                "image_url": {"url": format!("data:image/png;base64,{}", image_base64)}
-            }));
-        }
-
-        // For Qwen models, add explicit instruction to avoid reasoning mode
+        // For Qwen models, use /no_think to disable reasoning mode
         let enhanced_prompt = if self.model.contains("qwen") {
-            format!("{}\n\nRespond directly with ONLY the roast/comment itself. Do not include any thinking, reasoning, or analysis - just the final response.", prompt)
+            format!("/no_think\n{}\n\nRespond directly with ONLY the roast/comment. No thinking, no reasoning. Just the final 2-3 sentence response.", prompt)
         } else {
-            format!("{}\n\nIMPORTANT: Respond with ONLY the roast itself. No thinking, no analysis, no meta-commentary - just deliver the roast directly.", prompt)
+            format!("{}\n\nIMPORTANT: Respond with ONLY the roast itself. No thinking, no analysis - just deliver the roast directly.", prompt)
         };
 
         let mut content = vec![json!({"type": "text", "text": enhanced_prompt})];
@@ -296,12 +288,12 @@ impl VisionService for OllamaVisionService {
         let body = json!({
             "model": self.model,
             "messages": [{"role": "user", "content": content}],
-            "max_tokens": 2048,
+            "max_tokens": 512,
             "temperature": 0.7,
             "stream": false,
-            // Disable reasoning mode for Qwen models
             "options": {
-                "num_predict": 2048
+                "num_ctx": 4096,
+                "num_predict": 512
             }
         });
 

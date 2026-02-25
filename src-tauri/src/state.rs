@@ -8,6 +8,7 @@ use tracing::info;
 
 pub const MAX_HISTORY: usize = 20;
 pub const CLEANUP_AGE_HOURS: i64 = 24;
+pub const LOG_CLEANUP_AGE_HOURS: i64 = 48;
 
 /// Interval presets in seconds: (min, max)
 pub const INTERVAL_PRESETS: &[(&str, (u64, u64))] = &[
@@ -580,16 +581,20 @@ impl StateManager {
     }
 
     pub fn cleanup_old_files(&self) -> Result<()> {
-        let cutoff = Local::now().timestamp() - (CLEANUP_AGE_HOURS * 3600);
-        
+        let cache_cutoff = Local::now().timestamp() - (CLEANUP_AGE_HOURS * 3600);
+        let log_cutoff = Local::now().timestamp() - (LOG_CLEANUP_AGE_HOURS * 3600);
+
         for entry in fs::read_dir(&self.temp_dir)? {
             if let Ok(entry) = entry {
                 let name = entry.file_name();
                 let name_str = name.to_string_lossy();
-                
+
                 if name_str == "config.json" || name_str == "history.json" {
                     continue;
                 }
+
+                let is_log = name_str.starts_with("app.log");
+                let cutoff = if is_log { log_cutoff } else { cache_cutoff };
 
                 if let Ok(metadata) = entry.metadata() {
                     if let Ok(modified) = metadata.modified() {
@@ -597,7 +602,7 @@ impl StateManager {
                             .duration_since(std::time::UNIX_EPOCH)
                             .map(|d| d.as_secs() as i64)
                             .unwrap_or(0);
-                        
+
                         if modified_secs < cutoff {
                             let _ = fs::remove_file(entry.path());
                             info!("Cleaned up old file: {}", name_str);

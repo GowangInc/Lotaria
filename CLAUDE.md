@@ -22,7 +22,7 @@ Lotaria is a desktop pet that sits on your screen, periodically captures the scr
   - Environmental effects (scanlines, energy fields, rain, ripples)
 - **Animations**: Avatar collapses before screenshot, expands after capture
 - **History**: Last 20 roasts saved to config dir for context/callbacks
-- **Storage**: Images + audio saved to cache dir, auto-cleanup after 24h
+- **Storage**: Images + audio saved to cache dir, auto-cleanup after 24h; log files auto-cleanup after 48h
 - **Build**: Vite builds frontend to `dist/`, Tauri bundles into native app
 - **Settings**: Save button at bottom of settings panel; config persisted on save
 - **Config Migration**: On startup, validates/fixes deprecated models and mismatched voices
@@ -365,7 +365,6 @@ A single-page landing site is located in `website/` (gitignored):
 ## New features to include as we progress
 
 ### 🟢 Trivial (< 1 hour)
-- **Clear log files after 2 days** — Extend existing 24h cache cleanup logic to log files
 - **Roast intensity slider** — Add config field + UI slider, inject intensity instruction into `build_prompt()`
 - **Sound effects for pet actions** — Click sounds, notification chimes on roast start/end using existing `rodio` player
 - **Global hotkey for instant roast** — Tauri 2.0 global shortcut plugin; bind a key combo to `roast_now`

@@ -24,7 +24,7 @@ A desktop pet that watches your screen and roasts you — rebuilt with **Tauri +
 - **Tiny footprint** — entire app under 15MB (plus optional voice models)
 - **Cross-platform** — Windows, macOS, Linux (Windows only for now)
 - **Native performance** — Rust backend with Web frontend
-- **Privacy first** — auto-delete screenshots after 24h, pause anytime
+- **Privacy first** — auto-delete screenshots after 24h, log files after 48h, pause anytime
 
 ## Prerequisites
 

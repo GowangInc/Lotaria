@@ -1,6 +1,6 @@
 use crate::capture::ScreenCapture;
 use crate::state::{get_interval_seconds, truncate_response, Config, History, ProviderDef, StateManager, INTERVAL_PRESETS};
-use crate::tts::{self, create_tts_service};
+use crate::tts::{self, create_tts_service, SoundEffects};
 use crate::vision::create_vision_service;
 use serde::Serialize;
 use std::sync::{Arc, Mutex};
@@ -130,6 +130,11 @@ pub async fn roast_now(
             .ok_or_else(|| "Vision API key not set".to_string())?
     };
 
+    // Play start sound effect
+    if config.audio_enabled {
+        SoundEffects::play_start();
+    }
+
     // Move window off-screen before capture
     let original_pos = window.outer_position().map_err(|e| e.to_string())?;
     window.set_position(tauri::Position::Physical(tauri::PhysicalPosition { x: -1000, y: -1000 }))
@@ -233,6 +238,11 @@ pub async fn roast_now(
     // Always compute display duration from text, regardless of TTS success
     let word_count = analysis.split_whitespace().count();
     audio_duration = (word_count as f64 / 150.0) * 60.0;
+
+    // Play completion chime (after TTS so they don't overlap)
+    if config.audio_enabled {
+        SoundEffects::play_complete();
+    }
 
     Ok(RoastResult {
         text: analysis,

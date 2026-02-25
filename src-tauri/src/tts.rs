@@ -675,3 +675,93 @@ async fn ensure_piper_model(cache_dir: &std::path::Path, voice: &str) -> Result<
 
     Ok(model_path)
 }
+
+/// Sound effects generated as simple sine wave tones
+pub struct SoundEffects;
+
+impl SoundEffects {
+    /// Generate a short click/blip sound (roast starting)
+    fn generate_blip() -> Vec<u8> {
+        let sample_rate = 22050u32;
+        let duration_ms = 80;
+        let num_samples = (sample_rate as usize * duration_ms) / 1000;
+        let freq = 880.0f32; // A5
+
+        let mut pcm = Vec::with_capacity(num_samples * 2);
+        for i in 0..num_samples {
+            let t = i as f32 / sample_rate as f32;
+            let envelope = 1.0 - (i as f32 / num_samples as f32); // linear decay
+            let sample = (t * freq * 2.0 * std::f32::consts::PI).sin() * envelope * 0.4;
+            let s = (sample * 32767.0) as i16;
+            pcm.extend_from_slice(&s.to_le_bytes());
+        }
+
+        pcm_to_wav_simple(&pcm, sample_rate)
+    }
+
+    /// Generate a two-tone chime sound (roast complete)
+    fn generate_chime() -> Vec<u8> {
+        let sample_rate = 22050u32;
+        let note_ms = 120;
+        let note_samples = (sample_rate as usize * note_ms) / 1000;
+        let freqs = [523.25f32, 659.25]; // C5, E5
+
+        let mut pcm = Vec::with_capacity(note_samples * 2 * freqs.len());
+        for &freq in &freqs {
+            for i in 0..note_samples {
+                let t = i as f32 / sample_rate as f32;
+                let envelope = 1.0 - (i as f32 / note_samples as f32).powf(0.5);
+                let sample = (t * freq * 2.0 * std::f32::consts::PI).sin() * envelope * 0.35;
+                let s = (sample * 32767.0) as i16;
+                pcm.extend_from_slice(&s.to_le_bytes());
+            }
+        }
+
+        pcm_to_wav_simple(&pcm, sample_rate)
+    }
+
+    /// Play the roast-start blip sound
+    pub fn play_start() {
+        std::thread::spawn(|| {
+            let wav = Self::generate_blip();
+            if let Err(e) = AudioPlayer::play(&wav) {
+                tracing::warn!("Sound effect error: {}", e);
+            }
+        });
+    }
+
+    /// Play the roast-complete chime sound
+    pub fn play_complete() {
+        std::thread::spawn(|| {
+            let wav = Self::generate_chime();
+            if let Err(e) = AudioPlayer::play(&wav) {
+                tracing::warn!("Sound effect error: {}", e);
+            }
+        });
+    }
+}
+
+/// Simple PCM-to-WAV without byteorder (for sound effects)
+fn pcm_to_wav_simple(pcm: &[u8], sample_rate: u32) -> Vec<u8> {
+    let data_size = pcm.len() as u32;
+    let file_size = 36 + data_size;
+    let byte_rate = sample_rate * 2; // mono, 16-bit
+    let mut wav = Vec::with_capacity(44 + pcm.len());
+
+    wav.extend_from_slice(b"RIFF");
+    wav.extend_from_slice(&file_size.to_le_bytes());
+    wav.extend_from_slice(b"WAVE");
+    wav.extend_from_slice(b"fmt ");
+    wav.extend_from_slice(&16u32.to_le_bytes());
+    wav.extend_from_slice(&1u16.to_le_bytes()); // PCM
+    wav.extend_from_slice(&1u16.to_le_bytes()); // mono
+    wav.extend_from_slice(&sample_rate.to_le_bytes());
+    wav.extend_from_slice(&byte_rate.to_le_bytes());
+    wav.extend_from_slice(&2u16.to_le_bytes()); // block align
+    wav.extend_from_slice(&16u16.to_le_bytes()); // bits per sample
+    wav.extend_from_slice(b"data");
+    wav.extend_from_slice(&data_size.to_le_bytes());
+    wav.extend_from_slice(pcm);
+
+    wav
+}

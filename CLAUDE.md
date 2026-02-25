@@ -15,6 +15,7 @@ Lotaria is a desktop pet that sits on your screen, periodically captures the scr
 - **TTS**: Piper TTS (bundled, offline), Gemini TTS (free), OpenAI, Murf AI, ElevenLabs, Inworld AI
 - **Moods**: 10 built-in (roast, helpful, encouraging, sarcastic, zen, anime, gordon, therapist, detective, hype) + custom with AI improvement
 - **Intensity**: Configurable roast intensity slider (1-10, default 5) injected into prompts
+- **Sound Effects**: Blip on roast start, chime on roast complete (generated sine waves via rodio)
 - **Frequency**: Configurable monitoring intervals (often/frequent/infrequent)
 - **Pet Styles**: 10 highly detailed animated designs with unique personalities:
   - Each pet has multiple layers (body, pseudo-elements, shadows)
@@ -366,7 +367,6 @@ A single-page landing site is located in `website/` (gitignored):
 ## New features to include as we progress
 
 ### 🟢 Trivial (< 1 hour)
-- **Sound effects for pet actions** — Click sounds, notification chimes on roast start/end using existing `rodio` player
 - **Global hotkey for instant roast** — Tauri 2.0 global shortcut plugin; bind a key combo to `roast_now`
 
 ### 🟡 Easy (a few hours)

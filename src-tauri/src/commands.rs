@@ -98,6 +98,7 @@ pub async fn set_config(
         "pet_style" => config.pet_style = value.as_str().unwrap_or("default").to_string(),
         "gemini_free_tier" => config.gemini_free_tier = value.as_bool().unwrap_or(true),
         "roast_intensity" => config.roast_intensity = value.as_u64().unwrap_or(5).min(10) as u8,
+        "mood_rotation" => config.mood_rotation = value.as_str().unwrap_or("").to_string(),
         "first_run" => config.first_run = value.as_bool().unwrap_or(false),
         _ => {}
     }
@@ -112,7 +113,16 @@ pub async fn roast_now(
     window: tauri::WebviewWindow,
     state: State<'_, AppState>
 ) -> Result<RoastResult, String> {
-    let config = state.config.read().await.clone();
+    let mut config = state.config.read().await.clone();
+
+    // Apply mood rotation if enabled
+    if config.mood_rotation == "per-roast" && config.mood != "custom" {
+        use crate::state::MOOD_PROMPTS;
+        use rand::Rng;
+        let idx = rand::thread_rng().gen_range(0..MOOD_PROMPTS.len());
+        config.mood = MOOD_PROMPTS[idx].0.to_string();
+        tracing::info!("Mood rotated to: {}", config.mood);
+    }
 
     // Check if we have API keys (skip for local providers)
     let vision_provider_def = ProviderDef::get(&config.vision_provider)

@@ -271,6 +271,8 @@ pub struct Config {
     pub gemini_free_tier: bool,
     #[serde(default = "default_roast_intensity")]
     pub roast_intensity: u8,
+    #[serde(default)]
+    pub mood_rotation: String,
 }
 
 fn default_first_run() -> bool {
@@ -304,6 +306,7 @@ impl Default for Config {
             pet_style: "default".to_string(),
             gemini_free_tier: true,
             roast_intensity: 5,
+            mood_rotation: String::new(),
         }
     }
 }

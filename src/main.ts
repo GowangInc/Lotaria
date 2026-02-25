@@ -21,6 +21,7 @@ interface Config {
   pet_style: string;
   gemini_free_tier: boolean;
   roast_intensity: number;
+  mood_rotation: string;
 }
 
 interface ProviderDef {
@@ -69,6 +70,7 @@ let config: Config = {
   pet_style: 'default',
   gemini_free_tier: true,
   roast_intensity: 5,
+  mood_rotation: '',
 };
 
 let providers: ProviderDef[] = [];
@@ -723,6 +725,12 @@ async function buildMoodUI() {
         intensityValue.textContent = intensitySlider.value;
       });
     }
+
+    // Mood rotation
+    const rotationSelect = document.getElementById('mood-rotation-select') as HTMLSelectElement;
+    if (rotationSelect) {
+      rotationSelect.value = config.mood_rotation || '';
+    }
   } catch (e) {
     console.error('Failed to load moods:', e);
   }
@@ -985,6 +993,8 @@ function setupEventListeners() {
     if (mood) await invoke('set_config', { key: 'mood', value: mood });
     await invoke('set_config', { key: 'custom_mood', value: customMood });
     await invoke('set_config', { key: 'roast_intensity', value: intensity });
+    const moodRotation = (document.getElementById('mood-rotation-select') as HTMLSelectElement)?.value || '';
+    await invoke('set_config', { key: 'mood_rotation', value: moodRotation });
 
     // Reload config
     config = await invoke('get_config');

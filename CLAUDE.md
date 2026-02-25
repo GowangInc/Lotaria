@@ -18,6 +18,7 @@ Lotaria is a desktop pet that sits on your screen, periodically captures the scr
 - **Sound Effects**: Blip on roast start, chime on roast complete (generated sine waves via rodio)
 - **Global Hotkey**: `Ctrl+Shift+R` triggers instant roast from anywhere (Tauri global shortcut plugin)
 - **System Tray**: Tray icon with menu — Roast Now, Start/Pause Monitoring, Settings, Quit
+- **Mood Rotation**: Optional random mood selection per roast (configurable in Settings > Mood)
 - **Frequency**: Configurable monitoring intervals (often/frequent/infrequent)
 - **Pet Styles**: 10 highly detailed animated designs with unique personalities:
   - Each pet has multiple layers (body, pseudo-elements, shadows)
@@ -372,7 +373,6 @@ A single-page landing site is located in `website/` (gitignored):
 (All trivial features implemented)
 
 ### 🟡 Easy (a few hours)
-- **Pet moods that change** — Timer/random selector rotates through existing 10 moods automatically
 - **Blacklist apps/windows** — Check foreground window title against config list before capture, skip if matched
 - **Break reminders** — Track activity timestamps, emit "take a break" prompt if idle > threshold
 - **Right-click context menu on pet** — Quick actions: roast now, change mood, mute, settings, quit (replaces needing to open full settings)
